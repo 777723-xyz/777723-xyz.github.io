@@ -39,7 +39,11 @@ async function worker() {
 
 await Promise.all(Array.from({ length: concurrency }, worker));
 
-const published = checks.filter((item) => item.ok).map((item) => item.game);
+// `list.json` is an operational index and intentionally contains upstream audit
+// metadata.  The public portal only receives fields it renders or needs to
+// launch an already-verified game, so old upstream Pages/cover URLs never leak
+// into the browser catalog.
+const published = checks.filter((item) => item.ok).map((item) => publicGame(item.game));
 const unavailable = checks.filter((item) => !item.ok).map((item) => ({
   id: item.game.id,
   pagesUrl: item.game.pagesUrl,
@@ -66,6 +70,21 @@ console.log(`Catalog source entries: ${source.length}`);
 console.log(`Verified own-Pages candidates: ${candidates.length}`);
 console.log(`Published reachable games: ${published.length}`);
 console.log(`Unavailable games excluded: ${unavailable.length}`);
+
+function publicGame(game) {
+  return {
+    id: game.id,
+    title: game.title,
+    owner: game.owner,
+    name: game.name,
+    engine: game.engine,
+    repo: game.repo,
+    status: "verified",
+    pagesUrl: game.pagesUrl,
+    entryPath: game.entryPath || "index.html",
+    ...(typeof game.cover === "string" ? { cover: game.cover } : {}),
+  };
+}
 
 async function checkGame(game) {
   for (let attempt = 0; attempt < 2; attempt += 1) {
