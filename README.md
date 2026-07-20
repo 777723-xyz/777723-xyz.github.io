@@ -1,16 +1,36 @@
 # 777723-xyz.github.io
 
-Public, static game catalog for 777723.xyz.
+777723.xyz 的公开 Web RPG 门户。仓库只承载门户、启动器和发布时生成的可用游戏目录；游戏文件由各游戏 Fork 的 GitHub Pages 承载。
 
-The Pages deployment reads the catalog from `777723-xyz/game-index-runner`, verifies each game URL, and publishes only entries that are `verified`, hosted on a host in `config.json`, and reachable over HTTP. The browser reads the generated `games.json`, so unavailable game Pages are not shown to users.
+## 数据闭环
 
-The catalog is rebuilt on every portal push, on manual dispatch, and hourly at minute 17.
+1. `game-index-runner/list.json` 是唯一游戏真源。
+2. Pages 工作流运行 `scripts/build-catalog.mjs`，只保留 `verified`、属于 `allowedGameHosts` 且实际返回成功状态的游戏。
+3. 门户只读取本次部署生成的 `games.json`。
+4. `config.json` 管理品牌、发布页、获取链接、启动器、允许的游戏域名、统计端点和游戏广告时间。
+5. `ads.json` 管理 13 条广告文案及顶部、搜索下方、卡片间、游戏开始和游戏定时广告位。
 
-## Domain cutover
+门户在每次推送、手动触发和每小时第 17 分钟重新构建。部署前会运行 `node scripts/validate-portal.mjs`，配置、广告引用、旧域名或未批准统计脚本不合格时会阻止发布。
 
-When a custom domain is ready, configure it in this repository's **Settings → Pages → Custom domain**, then update both:
+## 本地检查
 
-1. `config.json` → `allowedGameHosts`.
-2. `game-index-runner` → `SITE_ORIGIN` and the existing `pagesUrl` records.
+```bash
+node --check app.js
+node scripts/validate-portal.mjs
+node scripts/build-catalog.mjs
+```
 
-Do not use the Baota server as a reverse proxy for game assets in this model. Pages serves the catalog and each game Pages repository directly.
+然后在仓库根目录启动任意静态 HTTP 服务，访问 `/` 和 `/play.html?id=<游戏ID>`。
+
+## 宝塔控制广告
+
+宝塔只需要提供很小的 JSON 配置文件，不存游戏、不反代游戏流量。完整操作与 CORS 示例见 [`docs/BAOTA_CONTROL.md`](docs/BAOTA_CONTROL.md)。广告服务尚未上线前，保持 `runtimeConfigEndpoints` 为空，门户会使用仓库内的安全默认配置。
+
+## 绑定域名
+
+域名准备好后，在本仓库 **Settings → Pages → Custom domain** 中设置，并同步修改：
+
+1. `config.json` 的 `allowedGameHosts`。
+2. `game-index-runner` 的 `SITE_ORIGIN` 和后续回写的 `pagesUrl`。
+
+此架构不需要宝塔代理或存储游戏资源。

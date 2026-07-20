@@ -1,33 +1,138 @@
-const statusElement = document.querySelector("#catalog-status");
-const catalogElement = document.querySelector("#catalog");
-const searchElement = document.querySelector("#search");
-const cardTemplate = document.querySelector("#game-card-template");
+const elements = {
+  status: document.querySelector("#catalog-status"),
+  catalog: document.querySelector("#catalog"),
+  search: document.querySelector("#search"),
+  reload: document.querySelector("#reload"),
+  tagline: document.querySelector("#tagline"),
+  publish: document.querySelector("#publish-link"),
+  footerPublish: document.querySelector("#footer-publish"),
+  headerAd: document.querySelector("#header-ad"),
+  searchAd: document.querySelector("#search-ad"),
+  gameTemplate: document.querySelector("#game-card-template"),
+  adTemplate: document.querySelector("#card-ad-template"),
+};
 
-let allGames = [];
+const COPY = {
+  "zh-Hans": {
+    tagline: "请务必收藏发布页，回家不迷路",
+    searchPlaceholder: "搜索标题、作者或仓库名",
+    loading: "正在读取游戏目录…",
+    loaded: (count) => `已加载 ${count} 个可玩游戏。`,
+    matched: (count) => `找到 ${count} 个匹配游戏。`,
+    empty: "暂时没有符合条件的游戏。",
+    error: "目录暂时无法加载，请稍后重试。",
+    play: "开始",
+    source: "源码",
+    acquire: "获取",
+  },
+  en: {
+    tagline: "Bookmark the permanent release page",
+    searchPlaceholder: "Search title, author, or repository",
+    loading: "Loading game catalog…",
+    loaded: (count) => `${count} playable games loaded.`,
+    matched: (count) => `${count} matching games found.`,
+    empty: "No matching games are available.",
+    error: "The catalog is temporarily unavailable.",
+    play: "Play",
+    source: "Source",
+    acquire: "Get",
+  },
+  ja: {
+    tagline: "恒久公開ページをブックマークしてください",
+    searchPlaceholder: "タイトル・作者・リポジトリを検索",
+    loading: "ゲーム一覧を読み込み中…",
+    loaded: (count) => `${count} 本のゲームを読み込みました。`,
+    matched: (count) => `${count} 本のゲームが見つかりました。`,
+    empty: "一致するゲームはありません。",
+    error: "ゲーム一覧を読み込めませんでした。",
+    play: "開始",
+    source: "ソース",
+    acquire: "取得",
+  },
+};
 
-bootstrap().catch((error) => {
-  console.error("Failed to load game catalog", error);
-  setStatus("目录暂时无法加载，请稍后重试。", true);
-});
+const state = {
+  config: {},
+  ads: { ads: [], slots: {} },
+  games: [],
+  language: getInitialLanguage(),
+  loading: false,
+};
 
-async function bootstrap() {
-  const config = await fetchJson("/config.json");
-  const catalog = await fetchFirstAvailable(config.catalogEndpoints);
-  allGames = normalizeGames(catalog, config);
-  renderGames(allGames, config.defaultCoverUrl);
-  setStatus(`已加载 ${allGames.length} 个可玩游戏。`);
+initializeUi();
+loadData();
 
-  searchElement.addEventListener("input", () => {
-    const query = searchElement.value.trim().toLowerCase();
-    const filtered = query
-      ? allGames.filter((game) => game.searchText.includes(query))
-      : allGames;
-    renderGames(filtered, config.defaultCoverUrl);
-    setStatus(query ? `找到 ${filtered.length} 个匹配游戏。` : `已加载 ${allGames.length} 个可玩游戏。`);
+function initializeUi() {
+  elements.search.addEventListener("input", render);
+  elements.reload.addEventListener("click", loadData);
+  document.querySelectorAll("[data-language]").forEach((button) => {
+    button.addEventListener("click", () => setLanguage(button.dataset.language));
   });
+  document.addEventListener("click", trackClick);
+  applyLanguage();
+}
+
+async function loadData() {
+  if (state.loading) return;
+  state.loading = true;
+  elements.reload.classList.add("is-loading");
+  setStatus(copy().loading);
+
+  try {
+    const localConfig = await fetchJson("/config.json");
+    state.config = await loadRuntimeConfig(localConfig);
+    const [catalog, ads] = await Promise.all([
+      fetchFirstAvailable(state.config.catalogEndpoints),
+      fetchFirstAvailable(state.config.adsEndpoints || ["/ads.json"]),
+    ]);
+
+    state.ads = normalizeAds(ads);
+    state.games = normalizeGames(catalog, state.config);
+    applyConfig();
+    renderAdSlot(elements.headerAd, "header");
+    renderAdSlot(elements.searchAd, "search");
+    render();
+    sendEvent("page_view", { gameCount: state.games.length });
+  } catch (error) {
+    console.error("Failed to load portal data", error);
+    elements.catalog.replaceChildren(createStateCard(copy().error));
+    setStatus(copy().error, true);
+  } finally {
+    state.loading = false;
+    elements.reload.classList.remove("is-loading");
+  }
+}
+
+async function loadRuntimeConfig(localConfig) {
+  const endpoints = Array.isArray(localConfig.runtimeConfigEndpoints)
+    ? localConfig.runtimeConfigEndpoints
+    : [];
+
+  for (const endpoint of endpoints) {
+    try {
+      const remote = await fetchJson(endpoint, 4000);
+      return mergeConfig(localConfig, remote);
+    } catch (error) {
+      console.warn(`Runtime config unavailable: ${endpoint}`, error);
+    }
+  }
+  return localConfig;
+}
+
+function mergeConfig(base, override) {
+  if (!override || typeof override !== "object" || Array.isArray(override)) return base;
+  return {
+    ...base,
+    ...override,
+    analytics: { ...(base.analytics || {}), ...(override.analytics || {}) },
+    gameAd: { ...(base.gameAd || {}), ...(override.gameAd || {}) },
+  };
 }
 
 async function fetchFirstAvailable(endpoints) {
+  if (!Array.isArray(endpoints) || endpoints.length === 0) {
+    throw new Error("No endpoint is configured");
+  }
   let lastError;
   for (const endpoint of endpoints) {
     try {
@@ -36,21 +141,27 @@ async function fetchFirstAvailable(endpoints) {
       lastError = error;
     }
   }
-  throw lastError || new Error("No catalog endpoint is configured");
+  throw lastError || new Error("All endpoints failed");
 }
 
-async function fetchJson(url) {
-  const response = await fetch(url, { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error(`${url} returned ${response.status}`);
+async function fetchJson(url, timeoutMs = 12000) {
+  const target = safeHttpUrl(url, location.href);
+  if (!target) throw new Error(`Invalid endpoint: ${url}`);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(target, { cache: "no-store", signal: controller.signal });
+    if (!response.ok) throw new Error(`${target} returned ${response.status}`);
+    const type = response.headers.get("content-type") || "";
+    if (!type.includes("json")) throw new Error(`${target} did not return JSON`);
+    return await response.json();
+  } finally {
+    clearTimeout(timer);
   }
-  return response.json();
 }
 
 function normalizeGames(catalog, config) {
-  if (!Array.isArray(catalog)) {
-    throw new Error("Catalog is not an array");
-  }
+  if (!Array.isArray(catalog)) throw new Error("Catalog is not an array");
   const allowedHosts = new Set(config.allowedGameHosts || []);
   const seen = new Set();
 
@@ -62,49 +173,283 @@ function normalizeGames(catalog, config) {
       seen.add(game.id);
       return true;
     })
-    .sort((a, b) => a.title.localeCompare(b.title, "zh-Hans"));
+    .sort(compareGames);
 }
 
 function toGame(raw, allowedHosts) {
-  if (!raw || raw.status !== "verified" || typeof raw.pagesUrl !== "string") {
-    return null;
-  }
-
+  if (!raw || raw.status !== "verified" || typeof raw.pagesUrl !== "string") return null;
   const playUrl = buildPlayUrl(raw.pagesUrl, raw.entryPath);
-  if (!playUrl || !allowedHosts.has(playUrl.hostname)) {
-    return null;
-  }
+  if (!playUrl || !allowedHosts.has(playUrl.hostname)) return null;
 
+  const title = readableTitle(raw);
   const sourceUrl = safeHttpUrl(raw.repo);
   const coverUrl = safeHttpUrl(raw.cover, playUrl.href);
-  const title = readableTitle(raw);
+  const acquireUrl = safeHttpUrl(raw.acquireUrl);
   return {
     id: raw.id || `${raw.owner || "unknown"}/${raw.name || title}`,
     title,
     owner: raw.owner || "未知作者",
     name: raw.name || "未知仓库",
     engine: raw.engine || "RPG Maker",
-    coverUrl: coverUrl ? coverUrl.href : "",
+    totalSize: Number.isFinite(Number(raw.totalSize)) ? Number(raw.totalSize) : null,
+    coverUrl: coverUrl?.href || "",
     playUrl: playUrl.href,
-    sourceUrl: sourceUrl ? sourceUrl.href : "",
-    searchText: [title, raw.owner, raw.name, raw.engine].filter(Boolean).join(" ").toLowerCase()
+    sourceUrl: sourceUrl?.href || "",
+    acquireUrl: acquireUrl?.href || "",
+    searchText: [title, raw.owner, raw.name, raw.engine].filter(Boolean).join(" ").toLowerCase(),
   };
+}
+
+function compareGames(a, b) {
+  if (Boolean(a.coverUrl) !== Boolean(b.coverUrl)) return a.coverUrl ? -1 : 1;
+  if (a.totalSize !== b.totalSize) return (b.totalSize || -1) - (a.totalSize || -1);
+  return a.title.localeCompare(b.title, state.language === "en" ? "en" : "zh-Hans");
 }
 
 function buildPlayUrl(pagesUrl, entryPath) {
   const base = safeHttpUrl(pagesUrl);
   if (!base) return null;
   const entry = String(entryPath || "index.html").replace(/^\/+/, "");
-  const decodedPath = decodeURIComponent(base.pathname).replace(/^\/+/, "");
-  if (/\.html?$/i.test(base.pathname) || decodedPath.endsWith(entry)) {
-    return base;
-  }
+  let decodedPath = base.pathname;
+  try { decodedPath = decodeURIComponent(base.pathname); } catch { /* keep encoded path */ }
+  decodedPath = decodedPath.replace(/^\/+/, "");
+  if (/\.html?$/i.test(base.pathname) || decodedPath.endsWith(entry)) return base;
   const normalizedBase = base.href.endsWith("/") ? base.href : `${base.href}/`;
   if (!entry || entry.toLowerCase() === "index.html") return new URL(normalizedBase);
   const target = new URL(entry, normalizedBase);
   return target.origin === base.origin && target.pathname.startsWith(new URL(normalizedBase).pathname)
     ? target
     : null;
+}
+
+function render() {
+  const query = elements.search.value.trim().toLowerCase();
+  const games = query
+    ? state.games.filter((game) => game.searchText.includes(query))
+    : state.games;
+  elements.catalog.replaceChildren();
+
+  if (games.length === 0) {
+    elements.catalog.append(createStateCard(copy().empty));
+    setStatus(query ? copy().matched(0) : copy().loaded(0));
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  const cardAds = getSlotAds("cards");
+  const interval = getCardInterval();
+  let adIndex = 0;
+  let nextAdAt = cardAds.length ? intervalFor(adIndex, interval) : Number.POSITIVE_INFINITY;
+
+  games.forEach((game, index) => {
+    fragment.append(createGameCard(game));
+    const position = index + 1;
+    if (position === nextAdAt && position < games.length) {
+      fragment.append(createCardAd(cardAds[adIndex % cardAds.length]));
+      adIndex += 1;
+      nextAdAt += intervalFor(adIndex, interval);
+    }
+  });
+
+  elements.catalog.append(fragment);
+  setStatus(query ? copy().matched(games.length) : copy().loaded(games.length));
+}
+
+function createGameCard(game) {
+  const card = elements.gameTemplate.content.cloneNode(true);
+  const defaultCover = safeHttpUrl(state.config.defaultCoverUrl)?.href || "";
+  const base = card.querySelector(".cover-base");
+  const image = card.querySelector(".cover-image");
+  base.src = defaultCover;
+  if (game.coverUrl) {
+    image.src = game.coverUrl;
+    image.alt = `${game.title} 封面`;
+    image.addEventListener("load", () => image.classList.add("is-loaded"), { once: true });
+    image.addEventListener("error", () => image.remove(), { once: true });
+  } else {
+    image.remove();
+  }
+
+  card.querySelector(".game-title").textContent = game.title;
+  card.querySelector(".game-repo").textContent = `${game.owner}/${game.name}`;
+  card.querySelector(".engine").textContent = game.engine;
+  const size = card.querySelector(".size");
+  if (game.totalSize != null) {
+    size.hidden = false;
+    size.textContent = formatSize(game.totalSize);
+  }
+
+  const play = card.querySelector(".play");
+  play.href = buildLauncherUrl(game);
+  play.dataset.gameId = game.id;
+
+  const source = card.querySelector(".source");
+  if (game.sourceUrl) {
+    source.href = game.sourceUrl;
+    source.dataset.sourceId = game.id;
+    source.setAttribute("aria-label", `${copy().source}：${game.title}`);
+    source.title = `${copy().source}：${game.title}`;
+  } else {
+    source.remove();
+  }
+
+  const acquire = card.querySelector(".acquire");
+  acquire.href = game.acquireUrl || safeHttpUrl(state.config.acquireUrl)?.href || "https://777723.xyz/";
+  acquire.dataset.acquireId = game.id;
+  applyCopy(card);
+  return card;
+}
+
+function buildLauncherUrl(game) {
+  if (state.config.gameAd?.enabled === false || !state.config.launcherPath) return game.playUrl;
+  const launcher = new URL(state.config.launcherPath, location.origin);
+  launcher.searchParams.set("id", game.id);
+  return launcher.href;
+}
+
+function normalizeAds(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return { ads: [], slots: {} };
+  return {
+    ...value,
+    ads: Array.isArray(value.ads) ? value.ads.filter(isValidAd) : [],
+    slots: value.slots && typeof value.slots === "object" ? value.slots : {},
+  };
+}
+
+function getSlotAds(slot) {
+  const entries = Array.isArray(state.ads.slots?.[slot]) ? state.ads.slots[slot] : [];
+  const byId = new Map(state.ads.ads.map((ad) => [ad.id, ad]));
+  return entries
+    .map((entry) => typeof entry === "string" ? byId.get(entry) : entry)
+    .filter(isValidAd);
+}
+
+function isValidAd(ad) {
+  return Boolean(ad && typeof ad.text === "string" && ad.text.trim() && safeHttpUrl(ad.url));
+}
+
+function renderAdSlot(element, slot) {
+  const ads = getSlotAds(slot);
+  const ad = ads[0];
+  if (!ad) {
+    element.closest(".ad-slot").hidden = true;
+    return;
+  }
+  element.href = safeHttpUrl(ad.url).href;
+  element.textContent = ad.text;
+  element.dataset.adSlot = slot;
+}
+
+function createCardAd(ad) {
+  const node = elements.adTemplate.content.cloneNode(true);
+  const link = node.querySelector("a");
+  link.href = safeHttpUrl(ad.url).href;
+  link.dataset.adSlot = "cards";
+  link.querySelector("strong").textContent = ad.text;
+  return node;
+}
+
+function getCardInterval() {
+  const min = clampInteger(state.ads.cardInterval?.min, 8, 12, 8);
+  const max = clampInteger(state.ads.cardInterval?.max, min, 12, 12);
+  return { min, max };
+}
+
+function intervalFor(index, { min, max }) {
+  const range = max - min + 1;
+  return min + ((index * 7 + 3) % range);
+}
+
+function clampInteger(value, min, max, fallback) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? Math.min(max, Math.max(min, parsed)) : fallback;
+}
+
+function applyConfig() {
+  const publishUrl = safeHttpUrl(state.config.publishUrl)?.href || "https://777723.xyz/";
+  elements.publish.href = publishUrl;
+  elements.footerPublish.href = publishUrl;
+  document.title = `${state.config.title || "Web RPG"} · ${state.config.siteName || "777723.xyz"}`;
+  applyLanguage();
+}
+
+function setLanguage(language) {
+  if (!(language in COPY)) return;
+  state.language = language;
+  try { localStorage.setItem("rpg-portal-language", language); } catch { /* storage is optional */ }
+  state.games.sort(compareGames);
+  applyLanguage();
+  render();
+}
+
+function applyLanguage() {
+  const language = state.language in COPY ? state.language : "zh-Hans";
+  document.documentElement.lang = language;
+  elements.tagline.textContent = copy().tagline;
+  elements.search.placeholder = copy().searchPlaceholder;
+  document.querySelectorAll("[data-language]").forEach((button) => {
+    const active = button.dataset.language === language;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+  applyCopy(document);
+}
+
+function applyCopy(root) {
+  root.querySelectorAll?.("[data-copy]").forEach((node) => {
+    node.textContent = copy()[node.dataset.copy];
+  });
+}
+
+function copy() {
+  return COPY[state.language] || COPY["zh-Hans"];
+}
+
+function getInitialLanguage() {
+  try {
+    const saved = localStorage.getItem("rpg-portal-language");
+    if (saved && saved in COPY) return saved;
+  } catch { /* storage is optional */ }
+  const language = navigator.language || "";
+  if (language.startsWith("ja")) return "ja";
+  if (language.startsWith("en")) return "en";
+  return "zh-Hans";
+}
+
+function setStatus(message, isError = false) {
+  elements.status.textContent = message;
+  elements.status.classList.toggle("is-error", isError);
+}
+
+function createStateCard(message) {
+  const node = document.createElement("div");
+  node.className = "state-card";
+  node.textContent = message;
+  return node;
+}
+
+function trackClick(event) {
+  const target = event.target.closest("[data-game-id],[data-source-id],[data-acquire-id],[data-ad-slot]");
+  if (!target) return;
+  if (target.dataset.gameId) sendEvent("play_open", { gameId: target.dataset.gameId });
+  if (target.dataset.sourceId) sendEvent("source_open", { gameId: target.dataset.sourceId });
+  if (target.dataset.acquireId) sendEvent("acquire_click", { gameId: target.dataset.acquireId });
+  if (target.dataset.adSlot) sendEvent("ad_click", { slot: target.dataset.adSlot });
+}
+
+function sendEvent(name, data = {}) {
+  const endpoint = safeHttpUrl(state.config.analytics?.endpoint);
+  if (!endpoint) return;
+  const payload = JSON.stringify({
+    event: name,
+    site: state.config.analytics?.siteId || "rpg-portal",
+    path: location.pathname,
+    at: new Date().toISOString(),
+    ...data,
+  });
+  try {
+    navigator.sendBeacon(endpoint, new Blob([payload], { type: "application/json" }));
+  } catch { /* analytics must never break the portal */ }
 }
 
 function safeHttpUrl(value, base) {
@@ -124,41 +469,13 @@ function readableTitle(game) {
     : String(game.name || game.id || "未命名游戏");
 }
 
-function renderGames(games, defaultCoverUrl) {
-  catalogElement.replaceChildren();
-  if (games.length === 0) {
-    catalogElement.textContent = "暂时没有符合发布条件的游戏。";
-    return;
+function formatSize(kilobytes) {
+  let bytes = kilobytes * 1024;
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let index = 0;
+  while (bytes >= 1024 && index < units.length - 1) {
+    bytes /= 1024;
+    index += 1;
   }
-
-  const fragment = document.createDocumentFragment();
-  for (const game of games) {
-    const card = cardTemplate.content.cloneNode(true);
-    const cover = card.querySelector(".cover");
-    const title = card.querySelector("h2");
-    const repo = card.querySelector(".repo");
-    const meta = card.querySelector(".meta");
-    const play = card.querySelector(".play");
-    const source = card.querySelector(".source");
-
-    cover.src = game.coverUrl || defaultCoverUrl;
-    cover.alt = `${game.title} 封面`;
-    cover.addEventListener("error", () => { cover.src = defaultCoverUrl; }, { once: true });
-    title.textContent = game.title;
-    repo.textContent = `${game.owner}/${game.name}`;
-    meta.textContent = game.engine;
-    play.href = game.playUrl;
-    if (game.sourceUrl) {
-      source.href = game.sourceUrl;
-    } else {
-      source.remove();
-    }
-    fragment.append(card);
-  }
-  catalogElement.append(fragment);
-}
-
-function setStatus(message, isError = false) {
-  statusElement.textContent = message;
-  statusElement.classList.toggle("is-error", isError);
+  return `${bytes.toFixed(index === 0 ? 0 : 2)} ${units[index]}`;
 }
