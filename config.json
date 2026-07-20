@@ -3,11 +3,3 @@
   "allowedGameHosts": ["777723-xyz.github.io"],
   "defaultCoverUrl": "https://www.777723.xyz/view/seo_facai/img/loading.gif"
 }
-{
-  "catalogEndpoints": [
-    "https://raw.githubusercontent.com/777723-xyz/game-index-runner/main/list.json",
-    "https://cdn.jsdelivr.net/gh/777723-xyz/game-index-runner@main/list.json"
-  ],
-  "allowedGameHosts": ["777723-xyz.github.io"],
-  "defaultCoverUrl": "https://www.777723.xyz/view/seo_facai/img/loading.gif"
-}
