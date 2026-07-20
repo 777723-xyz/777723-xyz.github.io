@@ -1,11 +1,12 @@
 import fs from "node:fs/promises";
 
-const [config, ads, indexHtml, appJs, playHtml] = await Promise.all([
+const [config, ads, indexHtml, appJs, playHtml, playJs] = await Promise.all([
   readJson("config.json"),
   readJson("ads.json"),
   fs.readFile("index.html", "utf8"),
   fs.readFile("app.js", "utf8"),
   fs.readFile("play.html", "utf8"),
+  fs.readFile("play.js", "utf8"),
 ]);
 
 const failures = [];
@@ -21,6 +22,9 @@ requireValue(isHttpUrl(config.acquireUrl), "acquireUrl must be HTTP(S)");
 requireValue(config.launcherPath === "/play.html", "launcherPath must point to /play.html");
 requireValue(Array.isArray(config.catalogEndpoints) && config.catalogEndpoints.length > 0, "catalogEndpoints is empty");
 requireValue(Array.isArray(config.adsEndpoints) && config.adsEndpoints.length > 0, "adsEndpoints is empty");
+requireValue(Array.isArray(config.allowedControlHosts) && config.allowedControlHosts.length > 0, "allowedControlHosts is empty");
+requireValue(Array.isArray(config.allowedAdHosts) && config.allowedAdHosts.length > 0, "allowedAdHosts is empty");
+requireValue(Array.isArray(config.allowedCoverHosts) && config.allowedCoverHosts.length > 0, "allowedCoverHosts is empty");
 requireValue(Array.isArray(config.allowedGameHosts) && config.allowedGameHosts.includes("777723-xyz.github.io"), "own Pages host is not allowed");
 requireValue(config.gameAd?.enabled === true, "game ads must be enabled");
 requireValue(Number(config.gameAd?.repeatSeconds) >= 60, "game ad repeat must be at least 60 seconds");
@@ -36,7 +40,7 @@ for (const ad of ads.ads || []) {
   requireValue(typeof ad.text === "string" && ad.text.trim().length >= 12, `ad copy is too short: ${ad.id}`);
   requireValue(!texts.has(ad.text), `duplicate ad copy: ${ad.id}`);
   requireValue(isHttpUrl(ad.url), `invalid ad URL: ${ad.id}`);
-  requireValue(new URL(ad.url).hostname === new URL(config.acquireUrl).hostname, `ad URL is outside acquire host: ${ad.id}`);
+  requireValue(config.allowedAdHosts.includes(new URL(ad.url).hostname), `ad URL is outside allowed ad hosts: ${ad.id}`);
   ids.add(ad.id);
   texts.add(ad.text);
 }
@@ -55,10 +59,14 @@ requireValue(indexHtml.includes('id="card-ad-template"'), "card ad template is m
 requireValue(indexHtml.includes('class="pixel-button source"'), "icon-only source action is missing");
 requireValue(indexHtml.includes('rel="noopener noreferrer sponsored"'), "sponsored link protections are missing");
 requireValue(playHtml.includes('id="ad-modal"'), "game ad modal is missing");
-requireValue(playHtml.includes("scheduleAds()"), "game ad scheduler is missing");
-requireValue(playHtml.includes("iframeSandbox"), "iframe sandbox configuration is missing");
+requireValue(playJs.includes("scheduleAds()"), "game ad scheduler is missing");
+requireValue(playJs.includes("iframeSandbox"), "iframe sandbox configuration is missing");
+requireValue(playHtml.includes('src="/play.js"'), "launcher must use the local hardened script");
+requireValue(appJs.includes("REMOTE_CONFIG_FIELDS"), "portal runtime config whitelist is missing");
+requireValue(appJs.includes("allowedControlHosts"), "portal control-host restriction is missing");
+requireValue(appJs.includes("allowedAdHosts"), "portal ad-host restriction is missing");
 
-for (const [name, source] of [["index.html", indexHtml], ["app.js", appJs], ["play.html", playHtml]]) {
+for (const [name, source] of [["index.html", indexHtml], ["app.js", appJs], ["play.html", playHtml], ["play.js", playJs]]) {
   requireValue(!source.includes("webrpg.org"), `${name} still references the old domain`);
   requireValue(!/google-analytics|googletagmanager|gtag\(|matomo|umami|plausible/i.test(source), `${name} contains an unapproved analytics integration`);
 }

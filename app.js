@@ -59,6 +59,10 @@ const state = {
   loading: false,
 };
 
+const REMOTE_CONFIG_FIELDS = new Set([
+  "siteName", "title", "tagline", "publishUrl", "acquireUrl", "defaultCoverUrl", "adsEndpoints",
+]);
+
 initializeUi();
 loadData();
 
@@ -109,6 +113,7 @@ async function loadRuntimeConfig(localConfig) {
     : [];
 
   for (const endpoint of endpoints) {
+    if (!safeAllowedUrl(endpoint, localConfig.allowedControlHosts, location.href, true)) continue;
     try {
       const remote = await fetchJson(endpoint, 4000);
       return mergeConfig(localConfig, remote);
@@ -121,11 +126,46 @@ async function loadRuntimeConfig(localConfig) {
 
 function mergeConfig(base, override) {
   if (!override || typeof override !== "object" || Array.isArray(override)) return base;
+
+  const merged = { ...base };
+  for (const field of REMOTE_CONFIG_FIELDS) {
+    if (field in override) merged[field] = override[field];
+  }
+  if (typeof merged.publishUrl === "string" && !safeAllowedUrl(merged.publishUrl, base.allowedAdHosts)) merged.publishUrl = base.publishUrl;
+  if (typeof merged.acquireUrl === "string" && !safeAllowedUrl(merged.acquireUrl, base.allowedAdHosts)) merged.acquireUrl = base.acquireUrl;
+  if (typeof merged.defaultCoverUrl === "string" && !safeAllowedUrl(merged.defaultCoverUrl, base.allowedCoverHosts)) merged.defaultCoverUrl = base.defaultCoverUrl;
+  if (Array.isArray(merged.adsEndpoints)) {
+    merged.adsEndpoints = merged.adsEndpoints.filter((endpoint) => safeAllowedUrl(endpoint, base.allowedControlHosts, location.href, true));
+  }
+  if (!merged.adsEndpoints?.length) merged.adsEndpoints = base.adsEndpoints;
+
+  const remoteAnalytics = override.analytics && typeof override.analytics === "object" ? override.analytics : {};
+  const analyticsEndpoint = safeAllowedUrl(remoteAnalytics.endpoint, base.allowedControlHosts, location.href, true);
+  merged.analytics = {
+    ...(base.analytics || {}),
+    ...(analyticsEndpoint ? { endpoint: analyticsEndpoint.href } : {}),
+    ...(typeof remoteAnalytics.siteId === "string" ? { siteId: remoteAnalytics.siteId.slice(0, 80) } : {}),
+  };
+
+  const remoteGameAd = override.gameAd && typeof override.gameAd === "object" ? override.gameAd : {};
+  merged.gameAd = {
+    ...(base.gameAd || {}),
+    enabled: remoteGameAd.enabled === false ? false : base.gameAd?.enabled !== false,
+    startDelaySeconds: clampInteger(remoteGameAd.startDelaySeconds, 0, 3600, Number(base.gameAd?.startDelaySeconds) || 45),
+    repeatSeconds: clampInteger(remoteGameAd.repeatSeconds, 60, 86_400, Number(base.gameAd?.repeatSeconds) || 600),
+    closeDelaySeconds: clampInteger(remoteGameAd.closeDelaySeconds, 0, 60, Number(base.gameAd?.closeDelaySeconds) || 5),
+  };
+
   return {
-    ...base,
-    ...override,
-    analytics: { ...(base.analytics || {}), ...(override.analytics || {}) },
-    gameAd: { ...(base.gameAd || {}), ...(override.gameAd || {}) },
+    ...merged,
+    allowedControlHosts: base.allowedControlHosts,
+    allowedAdHosts: base.allowedAdHosts,
+    allowedCoverHosts: base.allowedCoverHosts,
+    allowedGameHosts: base.allowedGameHosts,
+    catalogEndpoints: base.catalogEndpoints,
+    launcherPath: base.launcherPath,
+    iframeSandbox: base.iframeSandbox,
+    runtimeConfigEndpoints: base.runtimeConfigEndpoints,
   };
 }
 
@@ -183,8 +223,8 @@ function toGame(raw, allowedHosts) {
 
   const title = readableTitle(raw);
   const sourceUrl = safeHttpUrl(raw.repo);
-  const coverUrl = safeHttpUrl(raw.cover, playUrl.href);
-  const acquireUrl = safeHttpUrl(raw.acquireUrl);
+  const coverUrl = safeAllowedUrl(raw.cover, state.config.allowedCoverHosts, playUrl.href);
+  const acquireUrl = safeAllowedUrl(raw.acquireUrl, state.config.allowedAdHosts);
   return {
     id: raw.id || `${raw.owner || "unknown"}/${raw.name || title}`,
     title,
@@ -257,7 +297,7 @@ function render() {
 
 function createGameCard(game) {
   const card = elements.gameTemplate.content.cloneNode(true);
-  const defaultCover = safeHttpUrl(state.config.defaultCoverUrl)?.href || "";
+  const defaultCover = safeAllowedUrl(state.config.defaultCoverUrl, state.config.allowedCoverHosts)?.href || "";
   const base = card.querySelector(".cover-base");
   const image = card.querySelector(".cover-image");
   base.src = defaultCover;
@@ -294,7 +334,7 @@ function createGameCard(game) {
   }
 
   const acquire = card.querySelector(".acquire");
-  acquire.href = game.acquireUrl || safeHttpUrl(state.config.acquireUrl)?.href || "https://777723.xyz/";
+  acquire.href = game.acquireUrl || safeAllowedUrl(state.config.acquireUrl, state.config.allowedAdHosts)?.href || "https://777723.xyz/";
   acquire.dataset.acquireId = game.id;
   applyCopy(card);
   return card;
@@ -325,7 +365,7 @@ function getSlotAds(slot) {
 }
 
 function isValidAd(ad) {
-  return Boolean(ad && typeof ad.text === "string" && ad.text.trim() && safeHttpUrl(ad.url));
+  return Boolean(ad && typeof ad.text === "string" && ad.text.trim() && safeAllowedUrl(ad.url, state.config.allowedAdHosts));
 }
 
 function renderAdSlot(element, slot) {
@@ -335,7 +375,7 @@ function renderAdSlot(element, slot) {
     element.closest(".ad-slot").hidden = true;
     return;
   }
-  element.href = safeHttpUrl(ad.url).href;
+  element.href = safeAllowedUrl(ad.url, state.config.allowedAdHosts).href;
   element.textContent = ad.text;
   element.dataset.adSlot = slot;
 }
@@ -343,7 +383,7 @@ function renderAdSlot(element, slot) {
 function createCardAd(ad) {
   const node = elements.adTemplate.content.cloneNode(true);
   const link = node.querySelector("a");
-  link.href = safeHttpUrl(ad.url).href;
+  link.href = safeAllowedUrl(ad.url, state.config.allowedAdHosts).href;
   link.dataset.adSlot = "cards";
   link.querySelector("strong").textContent = ad.text;
   return node;
@@ -366,7 +406,7 @@ function clampInteger(value, min, max, fallback) {
 }
 
 function applyConfig() {
-  const publishUrl = safeHttpUrl(state.config.publishUrl)?.href || "https://777723.xyz/";
+  const publishUrl = safeAllowedUrl(state.config.publishUrl, state.config.allowedAdHosts)?.href || "https://777723.xyz/";
   elements.publish.href = publishUrl;
   elements.footerPublish.href = publishUrl;
   document.title = `${state.config.title || "Web RPG"} · ${state.config.siteName || "777723.xyz"}`;
@@ -438,7 +478,7 @@ function trackClick(event) {
 }
 
 function sendEvent(name, data = {}) {
-  const endpoint = safeHttpUrl(state.config.analytics?.endpoint);
+  const endpoint = safeAllowedUrl(state.config.analytics?.endpoint, state.config.allowedControlHosts, location.href, true);
   if (!endpoint) return;
   const payload = JSON.stringify({
     event: name,
@@ -460,6 +500,13 @@ function safeHttpUrl(value, base) {
   } catch {
     return null;
   }
+}
+
+function safeAllowedUrl(value, allowedHosts, base, allowSameOrigin = false) {
+  const url = safeHttpUrl(value, base);
+  if (!url) return null;
+  if (allowSameOrigin && url.origin === location.origin) return url;
+  return Array.isArray(allowedHosts) && allowedHosts.includes(url.hostname) ? url : null;
 }
 
 function readableTitle(game) {

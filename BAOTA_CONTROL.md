@@ -1,6 +1,6 @@
 # 宝塔广告与品牌配置
 
-宝塔只承担配置控制，不承担门户和游戏流量。浏览器从宝塔读取 JSON；读取失败时自动回退到 GitHub Pages 仓库内的 `config.json` 和 `ads.json`。
+宝塔只承担配置控制，不承担游戏文件或游戏流量。浏览器从宝塔读取 JSON；读取失败时自动回退到 GitHub Pages 仓库内的 `config.json` 和 `ads.json`。远程配置只能修改品牌、广告、广告时间和受限统计地址，不能修改游戏目录、允许游戏域名、启动器路径或 iframe 隔离策略。
 
 ## 文件位置
 
@@ -21,6 +21,8 @@
 - `gameAd.repeatSeconds`：后续广告间隔，最低 60 秒。
 - `gameAd.closeDelaySeconds`：广告关闭按钮倒计时。
 - `analytics.endpoint`：留空表示完全关闭统计。
+
+远程 URL 必须在门户 `config.json` 的 `allowedControlHosts` 中；广告和发布页 URL 必须在 `allowedAdHosts` 中。默认配置只允许 `777723.xyz`，如需换域名，先在仓库中同时改白名单再上线。
 
 广告文案在 `ads.json` 的 `ads` 数组中统一维护，广告位只引用 ID。卡片广告间隔由 `cardInterval.min` 和 `cardInterval.max` 控制，允许范围为 8～12。
 

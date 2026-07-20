@@ -10,7 +10,7 @@
 4. `config.json` 管理品牌、发布页、获取链接、启动器、允许的游戏域名、统计端点和游戏广告时间。
 5. `ads.json` 管理 13 条广告文案及顶部、搜索下方、卡片间、游戏开始和游戏定时广告位。
 
-门户在每次推送、手动触发和每小时第 17 分钟重新构建。部署前会运行 `node scripts/validate-portal.mjs`，配置、广告引用、旧域名或未批准统计脚本不合格时会阻止发布。
+Runner 在校验/Pages 回写成功后会主动通知门户重建；门户保留每小时第 27 分钟的兜底构建，避免和 Runner 每小时第 17 分钟索引竞争。部署前会运行 `node scripts/validate-portal.mjs`，配置、广告引用、旧域名或未批准统计脚本不合格时会阻止发布。
 
 ## 本地检查
 
@@ -24,7 +24,7 @@ node scripts/build-catalog.mjs
 
 ## 宝塔控制广告
 
-宝塔只需要提供很小的 JSON 配置文件，不存游戏、不反代游戏流量。完整操作与 CORS 示例见 [`docs/BAOTA_CONTROL.md`](docs/BAOTA_CONTROL.md)。广告服务尚未上线前，保持 `runtimeConfigEndpoints` 为空，门户会使用仓库内的安全默认配置。
+宝塔只需要提供很小的 JSON 配置文件，不存游戏、不反代游戏流量。完整操作与 CORS 示例见 [`BAOTA_CONTROL.md`](BAOTA_CONTROL.md)。广告服务尚未上线前，保持 `runtimeConfigEndpoints` 为空，门户会使用仓库内的安全默认配置。
 
 ## 绑定域名
 
