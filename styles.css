@@ -1,0 +1,26 @@
+:root { color-scheme: dark; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; background: #11110f; color: #f7f0d5; }
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; background: radial-gradient(circle at top, #3b2d17, #11110f 42rem); }
+.site-shell { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 48px 0 72px; }
+.hero { border: 3px solid #f6c85f; box-shadow: 7px 7px 0 #000; padding: 28px; background: rgba(21, 18, 11, .88); }
+.eyebrow { color: #f6c85f; font-size: .8rem; letter-spacing: .16em; margin: 0 0 10px; }
+h1 { font-size: clamp(1.75rem, 6vw, 3.4rem); line-height: 1.1; margin: 0; }
+.subtitle { color: #d6c99e; margin: 14px 0 0; }
+.controls { margin: 28px 0; }
+.search-label { display: block; margin-bottom: 9px; color: #d6c99e; font-size: .86rem; }
+input { width: 100%; border: 3px solid #f6c85f; padding: 15px; color: inherit; background: #18150e; font: inherit; outline: none; }
+input:focus { box-shadow: 5px 5px 0 #f6c85f; }
+.catalog-status { min-height: 1.25rem; color: #c7bb94; font-size: .88rem; }
+.catalog-status.is-error { color: #ff968c; }
+.catalog { display: grid; grid-template-columns: repeat(auto-fit, minmax(265px, 1fr)); gap: 18px; }
+.game-card { overflow: hidden; background: #1c1810; border: 2px solid #8f7132; box-shadow: 5px 5px 0 #000; }
+.cover { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; background: #090806; }
+.game-copy { padding: 16px; }
+h2 { font-size: 1rem; line-height: 1.4; margin: 0; overflow-wrap: anywhere; }
+.repo, .meta { color: #c7bb94; font-size: .78rem; overflow-wrap: anywhere; }
+.meta { color: #f6c85f; }
+.actions { display: flex; gap: 10px; margin-top: 14px; }
+.actions a { display: inline-block; border: 2px solid #f6c85f; padding: 9px 11px; color: #11110f; background: #f6c85f; text-decoration: none; font-size: .82rem; font-weight: 700; }
+.actions a.source { color: #f6c85f; background: transparent; }
+.actions a:hover, .actions a:focus-visible { transform: translate(-2px, -2px); box-shadow: 3px 3px 0 #000; outline: none; }
+@media (max-width: 560px) { .site-shell { width: min(100% - 22px, 1180px); padding-top: 20px; } .hero { padding: 20px; } .catalog { grid-template-columns: 1fr; } }
