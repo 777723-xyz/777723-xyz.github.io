@@ -1,5 +1,7 @@
 const elements = {
   status: document.querySelector("#catalog-status"),
+  loader: document.querySelector("#catalog-loader"),
+  loaderLabel: document.querySelector("#catalog-loader-label"),
   catalog: document.querySelector("#catalog"),
   catalogMore: document.querySelector("#catalog-more"),
   loadMore: document.querySelector("#load-more"),
@@ -18,7 +20,7 @@ const COPY = {
   "zh-Hans": {
     tagline: "请务必收藏发布页，回家不迷路",
     searchPlaceholder: "搜索标题、作者或仓库名",
-    loading: "正在读取游戏目录…",
+    loading: "正在读取索引…",
     loaded: (shown, total) => shown < total ? `已显示 ${shown} / ${total} 个可玩游戏。` : `已加载 ${total} 个可玩游戏。`,
     matched: (shown, total) => shown < total ? `已显示 ${shown} / ${total} 个匹配游戏。` : `找到 ${total} 个匹配游戏。`,
     empty: "暂时没有符合条件的游戏。",
@@ -31,7 +33,7 @@ const COPY = {
   en: {
     tagline: "Bookmark the permanent release page",
     searchPlaceholder: "Search title, author, or repository",
-    loading: "Loading game catalog…",
+    loading: "Loading index…",
     loaded: (shown, total) => shown < total ? `Showing ${shown} of ${total} playable games.` : `${total} playable games loaded.`,
     matched: (shown, total) => shown < total ? `Showing ${shown} of ${total} matches.` : `${total} matching games found.`,
     empty: "No matching games are available.",
@@ -60,12 +62,15 @@ const state = {
   config: {},
   ads: { ads: [], slots: {} },
   games: [],
+  gridColumns: 1,
   language: getInitialLanguage(),
   loading: false,
   visibleCount: 24,
 };
 
 const PAGE_SIZE = 24;
+let autoLoadObserver;
+let resizeFrame;
 
 const REMOTE_CONFIG_FIELDS = new Set([
   "siteName", "title", "tagline", "publishUrl", "acquireUrl", "defaultCoverUrl", "adsEndpoints",
@@ -81,9 +86,10 @@ function initializeUi() {
   });
   elements.reload.addEventListener("click", () => loadData({ force: true }));
   elements.loadMore.addEventListener("click", () => {
-    state.visibleCount += PAGE_SIZE;
-    render();
+    showNextPage();
   });
+  initializeAutoLoad();
+  window.addEventListener("resize", scheduleGridRender, { passive: true });
   document.querySelectorAll("[data-language]").forEach((button) => {
     button.addEventListener("click", () => setLanguage(button.dataset.language));
   });
@@ -95,6 +101,7 @@ async function loadData({ force = false } = {}) {
   if (state.loading) return;
   state.loading = true;
   elements.reload.classList.add("is-loading");
+  setLoading(true);
   setStatus(copy().loading);
 
   try {
@@ -121,6 +128,7 @@ async function loadData({ force = false } = {}) {
   } finally {
     state.loading = false;
     elements.reload.classList.remove("is-loading");
+    setLoading(false);
   }
 }
 
@@ -286,6 +294,7 @@ function render() {
     : state.games;
   const visibleGames = games.slice(0, state.visibleCount);
   elements.catalog.replaceChildren();
+  state.gridColumns = getGridColumnCount();
 
   if (games.length === 0) {
     elements.catalogMore.hidden = true;
@@ -298,7 +307,7 @@ function render() {
   const cardAds = getSlotAds("cards");
   const interval = getCardInterval();
   let adIndex = 0;
-  let nextAdAt = cardAds.length ? intervalFor(adIndex, interval) : Number.POSITIVE_INFINITY;
+  let nextAdAt = cardAds.length ? intervalFor(adIndex, interval, state.gridColumns) : Number.POSITIVE_INFINITY;
 
   visibleGames.forEach((game, index) => {
     fragment.append(createGameCard(game));
@@ -306,7 +315,7 @@ function render() {
     if (position === nextAdAt && position < visibleGames.length) {
       fragment.append(createCardAd(cardAds[adIndex % cardAds.length]));
       adIndex += 1;
-      nextAdAt += intervalFor(adIndex, interval);
+      nextAdAt += intervalFor(adIndex, interval, state.gridColumns);
     }
   });
 
@@ -416,9 +425,43 @@ function getCardInterval() {
   return { min, max };
 }
 
-function intervalFor(index, { min, max }) {
+function intervalFor(index, { min, max }, columns = 1) {
+  const aligned = [];
+  for (let value = min; value <= max; value += 1) {
+    if (value % columns === 0) aligned.push(value);
+  }
+  if (aligned.length > 0) return aligned[(index * 7 + 3) % aligned.length];
   const range = max - min + 1;
   return min + ((index * 7 + 3) % range);
+}
+
+function getGridColumnCount() {
+  const tracks = getComputedStyle(elements.catalog).gridTemplateColumns.trim();
+  return tracks && tracks !== "none" ? Math.max(1, tracks.split(/\s+/).length) : 1;
+}
+
+function showNextPage() {
+  if (state.visibleCount >= state.games.length) return;
+  state.visibleCount = Math.min(state.visibleCount + PAGE_SIZE, state.games.length);
+  render();
+}
+
+function initializeAutoLoad() {
+  if (!("IntersectionObserver" in window)) return;
+  document.documentElement.classList.add("has-auto-load");
+  autoLoadObserver = new IntersectionObserver((entries) => {
+    if (entries.some((entry) => entry.isIntersecting) && !state.loading && !elements.catalogMore.hidden) {
+      showNextPage();
+    }
+  }, { rootMargin: "700px 0px" });
+  autoLoadObserver.observe(elements.catalogMore);
+}
+
+function scheduleGridRender() {
+  cancelAnimationFrame(resizeFrame);
+  resizeFrame = requestAnimationFrame(() => {
+    if (state.games.length > 0 && getGridColumnCount() !== state.gridColumns) render();
+  });
 }
 
 function clampInteger(value, min, max, fallback) {
@@ -449,6 +492,7 @@ function applyLanguage() {
   document.documentElement.lang = language;
   elements.tagline.textContent = copy().tagline;
   elements.search.placeholder = copy().searchPlaceholder;
+  if (state.loading) elements.loaderLabel.textContent = copy().loading;
   document.querySelectorAll("[data-language]").forEach((button) => {
     const active = button.dataset.language === language;
     button.classList.toggle("is-active", active);
@@ -481,6 +525,12 @@ function getInitialLanguage() {
 function setStatus(message, isError = false) {
   elements.status.textContent = message;
   elements.status.classList.toggle("is-error", isError);
+}
+
+function setLoading(isLoading) {
+  elements.loader.classList.toggle("is-hidden", !isLoading);
+  elements.loader.setAttribute("aria-busy", String(isLoading));
+  if (isLoading) elements.loaderLabel.textContent = copy().loading;
 }
 
 function createStateCard(message) {

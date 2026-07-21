@@ -54,12 +54,18 @@ for (const slot of ["header", "search", "cards", "gameStart", "gameTimed"]) {
 }
 
 requireValue(indexHtml.includes('id="publish-link"'), "publish link is missing");
+requireValue(indexHtml.includes('id="catalog-loader"'), "catalog loading layer is missing");
+requireValue(indexHtml.includes('rel="canonical"'), "canonical URL is missing");
+requireValue(indexHtml.includes('property="og:title"'), "Open Graph title is missing");
+requireValue(indexHtml.includes('rel="icon"'), "favicon link is missing");
 requireValue(indexHtml.includes('id="game-card-template"'), "game card template is missing");
 requireValue(indexHtml.includes('id="card-ad-template"'), "card ad template is missing");
 requireValue(indexHtml.includes('id="load-more"'), "incremental catalog control is missing");
 requireValue(indexHtml.includes('class="pixel-button source"'), "icon-only source action is missing");
 requireValue(indexHtml.includes('rel="noopener noreferrer sponsored"'), "sponsored link protections are missing");
 requireValue(playHtml.includes('id="ad-modal"'), "game ad modal is missing");
+requireValue(playHtml.includes('content="noindex,follow"'), "launcher must not be indexed as a thin page");
+requireValue(playHtml.includes('href="/favicon.ico"'), "launcher favicon is missing");
 requireValue(playJs.includes("scheduleAds()"), "game ad scheduler is missing");
 requireValue(playJs.includes("iframeSandbox"), "iframe sandbox configuration is missing");
 requireValue(playHtml.includes('src="/play.js"'), "launcher must use the local hardened script");
@@ -68,6 +74,9 @@ requireValue(appJs.includes("allowedControlHosts"), "portal control-host restric
 requireValue(appJs.includes("allowedAdHosts"), "portal ad-host restriction is missing");
 requireValue(appJs.includes("const PAGE_SIZE = 24"), "portal initial render limit is missing");
 requireValue(appJs.includes('loadData({ force: true })'), "manual refresh must bypass the catalog cache");
+requireValue(appJs.includes("function setLoading"), "catalog loading layer state is missing");
+requireValue(appJs.includes("IntersectionObserver"), "automatic incremental loading is missing");
+requireValue(appJs.includes("value % columns === 0"), "card ads are not aligned to complete grid rows");
 
 for (const [name, source] of [["index.html", indexHtml], ["app.js", appJs], ["play.html", playHtml], ["play.js", playJs]]) {
   requireValue(!source.includes("webrpg.org"), `${name} still references the old domain`);
