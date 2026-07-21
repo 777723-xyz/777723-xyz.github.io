@@ -62,9 +62,10 @@ svg {
   content: "";
   background:
     linear-gradient(135deg, transparent 0 72%, rgb(255 203 104 / 0.08) 72% 75%, transparent 75%) 0 0 / 72px 72px,
-    radial-gradient(circle at 20% 10%, rgb(216 145 54 / 0.33), transparent 30rem),
-    radial-gradient(circle at 85% 20%, rgb(48 119 96 / 0.24), transparent 32rem),
-    linear-gradient(180deg, #3b2616, #17100a 55%);
+    linear-gradient(90deg, rgb(23 14 9 / 0.8), rgb(23 14 9 / 0.34) 52%, rgb(23 14 9 / 0.72)),
+    linear-gradient(180deg, rgb(59 38 22 / 0.54), rgb(23 16 10 / 0.82)),
+    url("/assets/webrpg-background-mobile.jpg") center top / cover no-repeat;
+  background-color: #17100a;
 }
 
 .site-scrim {
@@ -102,20 +103,22 @@ svg {
 }
 
 .brand-mark {
-  display: grid;
+  display: block;
   width: clamp(58px, 7vw, 84px);
   aspect-ratio: 1;
-  place-items: center;
+  overflow: hidden;
   border: 4px solid var(--ink);
-  background:
-    linear-gradient(90deg, transparent 45%, rgb(255 255 255 / 0.18) 45% 55%, transparent 55%),
-    linear-gradient(0deg, var(--green) 0 48%, var(--orange) 48% 100%);
-  color: var(--paper-soft);
+  background: var(--paper-deep);
   box-shadow: 5px 5px 0 var(--ink);
-  font-size: clamp(0.7rem, 1.2vw, 1rem);
-  font-weight: 900;
-  letter-spacing: -0.08em;
   transform: rotate(-2deg);
+}
+
+.brand-mark img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
 }
 
 .brand-text {
