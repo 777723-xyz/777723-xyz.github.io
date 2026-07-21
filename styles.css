@@ -63,8 +63,8 @@ svg {
   pointer-events: none;
   background:
     linear-gradient(135deg, transparent 0 72%, rgb(255 203 104 / 0.08) 72% 75%, transparent 75%) 0 0 / 72px 72px,
-    linear-gradient(90deg, rgb(23 14 9 / 0.8), rgb(23 14 9 / 0.34) 52%, rgb(23 14 9 / 0.72)),
-    linear-gradient(180deg, rgb(59 38 22 / 0.54), rgb(23 16 10 / 0.82)),
+    linear-gradient(90deg, rgb(23 14 9 / 0.5), rgb(23 14 9 / 0.12) 52%, rgb(23 14 9 / 0.44)),
+    linear-gradient(180deg, rgb(59 38 22 / 0.22), rgb(23 16 10 / 0.48)),
     url("/assets/webrpg-background-mobile.jpg") center top / cover no-repeat;
   background-color: #17100a;
 }
@@ -74,7 +74,7 @@ svg {
   z-index: 1;
   min-height: 100svh;
   padding: clamp(12px, 2vw, 28px);
-  background: linear-gradient(90deg, rgb(18 12 8 / 0.55), transparent 35%, rgb(18 12 8 / 0.45));
+  background: linear-gradient(90deg, rgb(18 12 8 / 0.3), transparent 35%, rgb(18 12 8 / 0.24));
 }
 
 .hero-band,
@@ -107,7 +107,7 @@ svg {
 
 .brand-mark {
   display: block;
-  width: clamp(42px, 5vw, 54px);
+  width: clamp(36px, 4vw, 46px);
   aspect-ratio: 1;
   overflow: hidden;
   border: 3px solid var(--ink);
