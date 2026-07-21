@@ -7,7 +7,8 @@
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <meta name="theme-color" content="#17100a" />
     <title>Web RPG · 777723.xyz</title>
-    <link rel="stylesheet" href="/styles.css?v=wallpaper-20260721" />
+    <link rel="preload" as="image" href="/assets/webrpg-background-mobile.webp" type="image/webp" fetchpriority="high" />
+    <link rel="stylesheet" href="/styles.css?v=fast-20260721" />
   </head>
   <body>
     <div class="site-shell">
@@ -60,6 +61,9 @@
 
         <p id="catalog-status" class="catalog-status" role="status">正在读取游戏目录…</p>
         <main id="catalog" class="catalog-grid" aria-live="polite"></main>
+        <div id="catalog-more" class="catalog-more" hidden>
+          <button id="load-more" class="pixel-button" type="button">加载更多</button>
+        </div>
 
         <footer class="site-footer">
           <p>游戏版权归各项目作者所有 · 广告与获取链接可通过独立配置更新 · <a id="footer-publish" href="https://777723.xyz" target="_blank" rel="noopener noreferrer">永久发布页</a></p>

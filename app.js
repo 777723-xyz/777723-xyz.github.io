@@ -1,6 +1,8 @@
 const elements = {
   status: document.querySelector("#catalog-status"),
   catalog: document.querySelector("#catalog"),
+  catalogMore: document.querySelector("#catalog-more"),
+  loadMore: document.querySelector("#load-more"),
   search: document.querySelector("#search"),
   reload: document.querySelector("#reload"),
   tagline: document.querySelector("#tagline"),
@@ -17,37 +19,40 @@ const COPY = {
     tagline: "请务必收藏发布页，回家不迷路",
     searchPlaceholder: "搜索标题、作者或仓库名",
     loading: "正在读取游戏目录…",
-    loaded: (count) => `已加载 ${count} 个可玩游戏。`,
-    matched: (count) => `找到 ${count} 个匹配游戏。`,
+    loaded: (shown, total) => shown < total ? `已显示 ${shown} / ${total} 个可玩游戏。` : `已加载 ${total} 个可玩游戏。`,
+    matched: (shown, total) => shown < total ? `已显示 ${shown} / ${total} 个匹配游戏。` : `找到 ${total} 个匹配游戏。`,
     empty: "暂时没有符合条件的游戏。",
     error: "目录暂时无法加载，请稍后重试。",
     play: "开始",
     source: "源码",
     acquire: "获取",
+    loadMore: "加载更多",
   },
   en: {
     tagline: "Bookmark the permanent release page",
     searchPlaceholder: "Search title, author, or repository",
     loading: "Loading game catalog…",
-    loaded: (count) => `${count} playable games loaded.`,
-    matched: (count) => `${count} matching games found.`,
+    loaded: (shown, total) => shown < total ? `Showing ${shown} of ${total} playable games.` : `${total} playable games loaded.`,
+    matched: (shown, total) => shown < total ? `Showing ${shown} of ${total} matches.` : `${total} matching games found.`,
     empty: "No matching games are available.",
     error: "The catalog is temporarily unavailable.",
     play: "Play",
     source: "Source",
     acquire: "Get",
+    loadMore: "Load more",
   },
   ja: {
     tagline: "恒久公開ページをブックマークしてください",
     searchPlaceholder: "タイトル・作者・リポジトリを検索",
     loading: "ゲーム一覧を読み込み中…",
-    loaded: (count) => `${count} 本のゲームを読み込みました。`,
-    matched: (count) => `${count} 本のゲームが見つかりました。`,
+    loaded: (shown, total) => shown < total ? `${total} 本中 ${shown} 本を表示しています。` : `${total} 本のゲームを読み込みました。`,
+    matched: (shown, total) => shown < total ? `${total} 件中 ${shown} 件を表示しています。` : `${total} 本のゲームが見つかりました。`,
     empty: "一致するゲームはありません。",
     error: "ゲーム一覧を読み込めませんでした。",
     play: "開始",
     source: "ソース",
     acquire: "取得",
+    loadMore: "さらに読み込む",
   },
 };
 
@@ -57,7 +62,10 @@ const state = {
   games: [],
   language: getInitialLanguage(),
   loading: false,
+  visibleCount: 24,
 };
+
+const PAGE_SIZE = 24;
 
 const REMOTE_CONFIG_FIELDS = new Set([
   "siteName", "title", "tagline", "publishUrl", "acquireUrl", "defaultCoverUrl", "adsEndpoints",
@@ -67,8 +75,15 @@ initializeUi();
 loadData();
 
 function initializeUi() {
-  elements.search.addEventListener("input", render);
+  elements.search.addEventListener("input", () => {
+    state.visibleCount = PAGE_SIZE;
+    render();
+  });
   elements.reload.addEventListener("click", loadData);
+  elements.loadMore.addEventListener("click", () => {
+    state.visibleCount += PAGE_SIZE;
+    render();
+  });
   document.querySelectorAll("[data-language]").forEach((button) => {
     button.addEventListener("click", () => setLanguage(button.dataset.language));
   });
@@ -92,6 +107,7 @@ async function loadData() {
 
     state.ads = normalizeAds(ads);
     state.games = normalizeGames(catalog, state.config);
+    state.visibleCount = PAGE_SIZE;
     applyConfig();
     renderAdSlot(elements.headerAd, "header");
     renderAdSlot(elements.searchAd, "search");
@@ -267,11 +283,13 @@ function render() {
   const games = query
     ? state.games.filter((game) => game.searchText.includes(query))
     : state.games;
+  const visibleGames = games.slice(0, state.visibleCount);
   elements.catalog.replaceChildren();
 
   if (games.length === 0) {
+    elements.catalogMore.hidden = true;
     elements.catalog.append(createStateCard(copy().empty));
-    setStatus(query ? copy().matched(0) : copy().loaded(0));
+    setStatus(query ? copy().matched(0, 0) : copy().loaded(0, 0));
     return;
   }
 
@@ -281,10 +299,10 @@ function render() {
   let adIndex = 0;
   let nextAdAt = cardAds.length ? intervalFor(adIndex, interval) : Number.POSITIVE_INFINITY;
 
-  games.forEach((game, index) => {
+  visibleGames.forEach((game, index) => {
     fragment.append(createGameCard(game));
     const position = index + 1;
-    if (position === nextAdAt && position < games.length) {
+    if (position === nextAdAt && position < visibleGames.length) {
       fragment.append(createCardAd(cardAds[adIndex % cardAds.length]));
       adIndex += 1;
       nextAdAt += intervalFor(adIndex, interval);
@@ -292,7 +310,9 @@ function render() {
   });
 
   elements.catalog.append(fragment);
-  setStatus(query ? copy().matched(games.length) : copy().loaded(games.length));
+  elements.catalogMore.hidden = visibleGames.length >= games.length;
+  elements.loadMore.textContent = copy().loadMore;
+  setStatus(query ? copy().matched(visibleGames.length, games.length) : copy().loaded(visibleGames.length, games.length));
 }
 
 function createGameCard(game) {
@@ -416,6 +436,7 @@ function applyConfig() {
 function setLanguage(language) {
   if (!(language in COPY)) return;
   state.language = language;
+  state.visibleCount = PAGE_SIZE;
   try { localStorage.setItem("rpg-portal-language", language); } catch { /* storage is optional */ }
   state.games.sort(compareGames);
   applyLanguage();

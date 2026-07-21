@@ -65,7 +65,10 @@ svg {
     linear-gradient(135deg, transparent 0 72%, rgb(255 203 104 / 0.08) 72% 75%, transparent 75%) 0 0 / 72px 72px,
     linear-gradient(90deg, rgb(23 14 9 / 0.5), rgb(23 14 9 / 0.12) 52%, rgb(23 14 9 / 0.44)),
     linear-gradient(180deg, rgb(59 38 22 / 0.22), rgb(23 16 10 / 0.48)),
-    url("/assets/webrpg-background-mobile.jpg") center top / cover no-repeat;
+    image-set(
+      url("/assets/webrpg-background-mobile.webp") type("image/webp"),
+      url("/assets/webrpg-background-mobile.jpg") type("image/jpeg")
+    ) center top / cover no-repeat;
   background-color: #17100a;
 }
 
@@ -294,6 +297,18 @@ svg {
   gap: clamp(18px, 2vw, 28px);
   align-items: start;
   padding: 2px clamp(2px, 1vw, 10px) 44px;
+}
+
+.catalog-more {
+  display: flex;
+  width: min(1360px, calc(100% - 16px));
+  justify-content: center;
+  margin: 0 auto 44px;
+}
+
+.catalog-more .pixel-button {
+  min-width: min(100%, 260px);
+  background: var(--paper-deep);
 }
 
 .game-card {
