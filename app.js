@@ -501,13 +501,25 @@ function showNextPage() {
   const start = Math.min(state.visibleCount, games.length);
   const end = Math.min(start + PAGE_SIZE, games.length);
   if (end <= start) return;
+  const scrollAnchor = { left: window.scrollX, top: window.scrollY };
   state.visibleCount = end;
   state.gridColumns = getGridColumnCount();
   appendCatalogPage(games, start, end);
+  restoreScrollAnchor(scrollAnchor);
   elements.catalogMore.hidden = end >= games.length;
   elements.loadMore.textContent = copy().loadMore;
   const query = elements.search.value.trim().toLowerCase();
   setStatus(query ? copy().matched(end, games.length) : copy().loaded(end, games.length));
+}
+
+function restoreScrollAnchor(anchor) {
+  if (!anchor) return;
+  const restore = () => {
+    if (Math.abs(window.scrollX - anchor.left) < 1 && Math.abs(window.scrollY - anchor.top) < 1) return;
+    window.scrollTo({ left: anchor.left, top: anchor.top, behavior: "instant" });
+  };
+  restore();
+  requestAnimationFrame(restore);
 }
 
 function initializeAutoLoad() {
