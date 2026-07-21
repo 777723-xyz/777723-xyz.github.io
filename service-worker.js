@@ -1,9 +1,9 @@
-const CACHE_NAME = "portal-cache-v1";
+const CACHE_NAME = "portal-cache-v2";
 const NAVIGATION_TIMEOUT_MS = 900;
 const SHELL_URLS = [
   "/",
   "/index.html",
-  "/styles.css?v=perf-20260721",
+  "/styles.css?v=loader-20260721",
   "/app.js?v=perf-20260721",
   "/config.json",
   "/ads.json",

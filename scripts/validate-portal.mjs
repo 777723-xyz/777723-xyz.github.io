@@ -87,7 +87,7 @@ requireValue(appJs.includes("function setLoading"), "catalog loading layer state
 requireValue(appJs.includes("IntersectionObserver"), "automatic incremental loading is missing");
 requireValue(appJs.includes("function initializeCoverLoading"), "viewport-based cover loading is missing");
 requireValue(appJs.includes('register("/service-worker.js")'), "portal cache registration is missing");
-requireValue(serviceWorkerJs.includes('const CACHE_NAME = "portal-cache-v1"'), "portal cache version is missing");
+requireValue(serviceWorkerJs.includes('const CACHE_NAME = "portal-cache-v2"'), "portal cache version is missing");
 requireValue(appJs.includes("value % columns === 0"), "card ads are not aligned to complete grid rows");
 requireValue(appJs.includes('fetchJson("/games.json"'), "catalog request is not prefetched in parallel");
 requireValue(buildCatalogJs.includes("totalSize: Number(game.totalSize)"), "published catalog omits game size");

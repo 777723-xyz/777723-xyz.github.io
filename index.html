@@ -22,16 +22,10 @@
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="apple-touch-icon" href="/assets/brand-avatar.webp" />
     <link rel="preload" as="image" href="/assets/webrpg-background-mobile.webp" type="image/webp" fetchpriority="high" />
-    <link rel="stylesheet" href="/styles.css?v=perf-20260721" />
+    <link rel="stylesheet" href="/styles.css?v=loader-20260721" />
   </head>
   <body>
     <div class="site-shell">
-      <section id="catalog-loader" class="catalog-loader" role="status" aria-live="polite" aria-busy="true" aria-labelledby="catalog-loader-label">
-        <div class="catalog-loader__content">
-          <p id="catalog-loader-label">正在读取索引…</p>
-          <div class="catalog-loader__strip" aria-hidden="true"><span></span><span></span><span></span></div>
-        </div>
-      </section>
       <div class="site-scrim">
         <aside class="ad-slot ad-slot--header" aria-label="推广">
           <a id="header-ad" target="_blank" rel="noopener noreferrer sponsored"></a>
@@ -78,6 +72,13 @@
         <aside class="ad-slot ad-slot--search" aria-label="推广">
           <a id="search-ad" target="_blank" rel="noopener noreferrer sponsored"></a>
         </aside>
+
+        <section id="catalog-loader" class="catalog-loader" role="status" aria-live="polite" aria-busy="true" aria-labelledby="catalog-loader-label">
+          <div class="catalog-loader__content">
+            <p id="catalog-loader-label">正在读取索引…</p>
+            <div class="catalog-loader__strip" aria-hidden="true"><span></span><span></span><span></span></div>
+          </div>
+        </section>
 
         <p id="catalog-status" class="catalog-status sr-only" role="status">正在读取游戏目录…</p>
         <main id="catalog" class="catalog-grid" aria-live="polite"></main>
