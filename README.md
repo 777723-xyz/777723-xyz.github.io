@@ -32,7 +32,7 @@ node scripts/build-catalog.mjs
 
 ## 绑定域名
 
-本仓库已写入 `CNAME`，目标域名为 `yx.ecy.al`。在域名服务商处添加：
+域名 DNS 生效后，再写入 `CNAME`（内容为 `yx.ecy.al`）并在本仓库 **Settings → Pages → Custom domain** 中填写 `yx.ecy.al`。在域名服务商处添加：
 
 ```text
 类型：CNAME
@@ -40,7 +40,7 @@ node scripts/build-catalog.mjs
 值：777723-xyz.github.io
 ```
 
-然后在本仓库 **Settings → Pages → Custom domain** 中填写 `yx.ecy.al` 并等待 HTTPS 检查。门户 canonical、站点地图和 Open Graph 地址已经同步为新域名。游戏资源仍使用 `777723-xyz.github.io` 的各游戏路径，不要把 `allowedGameHosts` 改成门户域名。
+DNS 和 GitHub Pages 设置完成后，再把门户 canonical、站点地图和 Open Graph 地址同步为新域名。游戏资源仍使用 `777723-xyz.github.io` 的各游戏路径，不要把 `allowedGameHosts` 改成门户域名。
 
 如以后更换门户域名，只需同步修改 `CNAME`、`config.json` 的控制域名白名单，以及 SEO 文件：
 

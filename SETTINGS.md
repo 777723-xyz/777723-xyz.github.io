@@ -1,6 +1,6 @@
 # 门户设置
 
-这个仓库就是门户的设置中心，不需要宝塔，也不需要 VPS 承载访问流量。修改 `main` 分支后，GitHub Actions 会自动校验并重新发布 Pages。
+这个仓库就是门户的设置中心，不需要宝塔，也不需要 VPS 承载访问流量。修改 `main` 分支后，GitHub Actions 会自动校验并重新发布 Pages。当前门户仍使用 GitHub Pages 默认域名；`yx.ecy.al` 待 DNS 生效后再启用。
 
 ## 常用设置
 
@@ -19,4 +19,4 @@
 
 ## 域名与流量
 
-门户和游戏 Pages 由 GitHub Pages 直接分发，用户访问不会经过宝塔或 VPS。域名服务商只需要把 `yx.ecy.al` 的 CNAME 指向 `777723-xyz.github.io`；GitHub Pages 的 Custom domain 设置完成并通过 HTTPS 检查后即可使用。
+门户和游戏 Pages 由 GitHub Pages 直接分发，用户访问不会经过宝塔或 VPS。启用 `yx.ecy.al` 时，域名服务商添加 `yx.ecy.al` 的 CNAME 指向 `777723-xyz.github.io`，确认 DNS 生效后再在 GitHub Pages 设置 Custom domain 并通过 HTTPS 检查。
