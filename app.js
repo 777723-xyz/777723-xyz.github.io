@@ -58,6 +58,8 @@ const COPY = {
   },
 };
 
+const titleCollators = new Map();
+
 const state = {
   config: {},
   ads: { ads: [], slots: {} },
@@ -69,6 +71,8 @@ const state = {
 };
 
 const PAGE_SIZE = 24;
+const LOCAL_CATALOG_ENDPOINT = "/games.json?v=data-size-sort-20260721";
+const LOCAL_ADS_ENDPOINT = "/ads.json";
 let autoLoadObserver;
 let coverLoadObserver;
 let resizeFrame;
@@ -111,15 +115,15 @@ async function loadData({ force = false } = {}) {
     const cacheMode = force ? "no-store" : "default";
     const [localConfig, localCatalog, localAds] = await Promise.all([
       fetchJson("/config.json", 12000, cacheMode),
-      fetchJson("/games.json", 12000, cacheMode),
-      fetchJson("/ads.json", 12000, cacheMode),
+      fetchJson(LOCAL_CATALOG_ENDPOINT, 12000, cacheMode),
+      fetchJson(LOCAL_ADS_ENDPOINT, 12000, cacheMode),
     ]);
     state.config = await loadRuntimeConfig(localConfig, cacheMode);
     const [catalog, ads] = await Promise.all([
-      usesOnlyEndpoint(state.config.catalogEndpoints, "/games.json")
+      usesOnlyEndpoint(state.config.catalogEndpoints, LOCAL_CATALOG_ENDPOINT)
         ? localCatalog
         : fetchFirstAvailable(state.config.catalogEndpoints, cacheMode),
-      usesOnlyEndpoint(state.config.adsEndpoints, "/ads.json")
+      usesOnlyEndpoint(state.config.adsEndpoints, LOCAL_ADS_ENDPOINT)
         ? localAds
         : fetchFirstAvailable(state.config.adsEndpoints || ["/ads.json"], cacheMode),
     ]);
@@ -273,6 +277,8 @@ function toGame(raw, allowedHosts) {
     name: raw.name || "未知仓库",
     engine: raw.engine || "RPG Maker",
     totalSize: Number.isFinite(Number(raw.totalSize)) ? Number(raw.totalSize) : null,
+    dataSize: Number.isFinite(Number(raw.dataSize)) ? Number(raw.dataSize) : null,
+    hasCover: Boolean(raw.cover),
     coverUrl: coverUrl?.href || "",
     playUrl: playUrl.href,
     sourceUrl: sourceUrl?.href || "",
@@ -282,9 +288,22 @@ function toGame(raw, allowedHosts) {
 }
 
 function compareGames(a, b) {
-  if (Boolean(a.coverUrl) !== Boolean(b.coverUrl)) return a.coverUrl ? -1 : 1;
-  if (a.totalSize !== b.totalSize) return (b.totalSize || -1) - (a.totalSize || -1);
-  return a.title.localeCompare(b.title, state.language === "en" ? "en" : "zh-Hans");
+  if (a.hasCover !== b.hasCover) return a.hasCover ? -1 : 1;
+  const aSize = a.dataSize ?? -1;
+  const bSize = b.dataSize ?? -1;
+  if (aSize !== bSize) return bSize - aSize;
+  return getTitleCollator().compare(a.title, b.title);
+}
+
+function getTitleCollator() {
+  const locale = state.language === "en" ? "en" : "zh";
+  return titleCollators.get(locale) || createTitleCollator(locale);
+}
+
+function createTitleCollator(locale) {
+  const collator = new Intl.Collator(locale, { sensitivity: "base", usage: "sort" });
+  titleCollators.set(locale, collator);
+  return collator;
 }
 
 function buildPlayUrl(pagesUrl, entryPath) {
@@ -653,7 +672,7 @@ function safeAllowedUrl(value, allowedHosts, base, allowSameOrigin = false) {
 
 function readableTitle(game) {
   const title = String(game.title || "").trim();
-  return title && !/^__template__$/i.test(title)
+  return title && !/\{\{.*\}\}/.test(title) && title !== "__template__"
     ? title
     : String(game.name || game.id || "未命名游戏");
 }

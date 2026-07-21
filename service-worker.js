@@ -1,10 +1,10 @@
-const CACHE_NAME = "portal-cache-v2";
+const CACHE_NAME = "portal-cache-v3";
 const NAVIGATION_TIMEOUT_MS = 900;
 const SHELL_URLS = [
   "/",
   "/index.html",
   "/styles.css?v=loader-20260721",
-  "/app.js?v=perf-20260721",
+  "/app.js?v=data-size-sort-20260721",
   "/config.json",
   "/ads.json",
   "/assets/webrpg-background-mobile.webp",

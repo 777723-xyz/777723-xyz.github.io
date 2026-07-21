@@ -6,7 +6,7 @@
   "acquireUrl": "https://777723.xyz",
   "showSourceButton": false,
   "launcherPath": "/play.html",
-  "catalogEndpoints": ["/games.json"],
+  "catalogEndpoints": ["/games.json?v=data-size-sort-20260721"],
   "adsEndpoints": ["/ads.json"],
   "runtimeConfigEndpoints": [],
   "allowedControlHosts": ["777723.xyz", "www.777723.xyz"],

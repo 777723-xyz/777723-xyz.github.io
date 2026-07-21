@@ -25,6 +25,7 @@ requireValue(isHttpUrl(config.acquireUrl), "acquireUrl must be HTTP(S)");
 requireValue(config.showSourceButton === false, "source button must be hidden by default");
 requireValue(config.launcherPath === "/play.html", "launcherPath must point to /play.html");
 requireValue(Array.isArray(config.catalogEndpoints) && config.catalogEndpoints.length > 0, "catalogEndpoints is empty");
+requireValue(config.catalogEndpoints[0] === "/games.json?v=data-size-sort-20260721", "catalog endpoint cache version is stale");
 requireValue(Array.isArray(config.adsEndpoints) && config.adsEndpoints.length > 0, "adsEndpoints is empty");
 requireValue(Array.isArray(config.allowedControlHosts) && config.allowedControlHosts.length > 0, "allowedControlHosts is empty");
 requireValue(Array.isArray(config.allowedAdHosts) && config.allowedAdHosts.length > 0, "allowedAdHosts is empty");
@@ -87,10 +88,13 @@ requireValue(appJs.includes("function setLoading"), "catalog loading layer state
 requireValue(appJs.includes("IntersectionObserver"), "automatic incremental loading is missing");
 requireValue(appJs.includes("function initializeCoverLoading"), "viewport-based cover loading is missing");
 requireValue(appJs.includes('register("/service-worker.js")'), "portal cache registration is missing");
-requireValue(serviceWorkerJs.includes('const CACHE_NAME = "portal-cache-v2"'), "portal cache version is missing");
+requireValue(serviceWorkerJs.includes('const CACHE_NAME = "portal-cache-v3"'), "portal cache version is missing");
 requireValue(appJs.includes("value % columns === 0"), "card ads are not aligned to complete grid rows");
-requireValue(appJs.includes('fetchJson("/games.json"'), "catalog request is not prefetched in parallel");
+requireValue(appJs.includes("fetchJson(LOCAL_CATALOG_ENDPOINT"), "catalog request is not prefetched in parallel");
+requireValue(appJs.includes("const aSize = a.dataSize ?? -1"), "portal must sort by dataSize like the upstream catalog");
 requireValue(buildCatalogJs.includes("totalSize: Number(game.totalSize)"), "published catalog omits game size");
+requireValue(buildCatalogJs.includes("dataSize: Number(game.dataSize)"), "published catalog omits dataSize used for sorting");
+requireValue(buildCatalogJs.includes('game.title?.trim() === "__template__"'), "template repositories must be excluded like upstream");
 
 for (const [name, source] of [["index.html", indexHtml], ["app.js", appJs], ["play.html", playHtml], ["play.js", playJs]]) {
   requireValue(!source.includes("webrpg.org"), `${name} still references the old domain`);

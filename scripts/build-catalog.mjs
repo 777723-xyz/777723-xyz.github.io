@@ -19,6 +19,7 @@ if (!Array.isArray(source)) throw new Error("Catalog source is not an array");
 
 const candidates = source.filter((game) => {
   if (game?.status !== "verified" || typeof game.pagesUrl !== "string") return false;
+  if (game.title?.trim() === "__template__") return false;
   try {
     return allowedHosts.has(new URL(game.pagesUrl).hostname);
   } catch {
@@ -83,6 +84,7 @@ function publicGame(game) {
     pagesUrl: game.pagesUrl,
     entryPath: game.entryPath || "index.html",
     ...(Number.isFinite(Number(game.totalSize)) ? { totalSize: Number(game.totalSize) } : {}),
+    ...(Number.isFinite(Number(game.dataSize)) ? { dataSize: Number(game.dataSize) } : {}),
     ...(typeof game.cover === "string" ? { cover: game.cover } : {}),
   };
 }
