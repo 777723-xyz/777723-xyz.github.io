@@ -223,6 +223,8 @@ svg {
   gap: 10px;
 }
 
+.game-actions.two-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
 .hero-actions {
   align-items: center;
   justify-content: flex-end;
@@ -526,6 +528,8 @@ svg {
   position: absolute !important;
   width: 1px !important;
   height: 1px !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
   padding: 0 !important;
   margin: -1px !important;
   overflow: hidden !important;
@@ -557,14 +561,29 @@ svg {
   .catalog-status,
   .catalog-grid,
   .site-footer { width: min(100%, calc(100% - 8px)); }
-  .hero-band { flex-direction: column; box-shadow: 5px 5px 0 var(--ink); }
-  .brand-text h1 { font-size: clamp(1.4rem, 10vw, 2.25rem); }
-  .hero-actions,
-  .language-switch { width: 100%; }
-  .hero-actions { align-items: stretch; }
-  .language-switch { flex-wrap: wrap; }
-  .publish-button { flex: 1 1 auto; }
-  .reload-button { width: 48px; }
+  .hero-band { gap: 10px; padding: 10px 12px; flex-direction: column; box-shadow: 5px 5px 0 var(--ink); }
+  .brand-lockup { gap: 9px; }
+  .brand-text { gap: 4px; }
+  .brand-text h1 { font-size: clamp(1.35rem, 9vw, 2rem); }
+  .brand-text p { font-size: 0.66rem; line-height: 1.35; }
+  .hero-actions { width: 100%; flex-direction: row; flex-wrap: nowrap; gap: 5px; align-items: center; }
+  .language-switch { width: auto; flex: 0 0 auto; flex-wrap: nowrap; gap: 4px; }
+  .language-button { min-width: 34px; min-height: 36px; padding: 6px; }
+  .publish-button { min-width: 0; min-height: 36px; padding: 6px 8px; flex: 1 1 auto; }
+  .publish-button svg:last-child { display: none; }
+  .reload-button { width: 38px; min-height: 36px; padding: 6px; }
+  .command-band { margin-top: 12px; padding: 8px; }
+  #search { min-height: 42px; padding-block: 9px; }
+  .game-card { contain-intrinsic-size: 350px; }
+  .cover-frame { aspect-ratio: 16 / 7; }
+  .game-body { gap: 8px; padding: 10px; }
+  .game-heading { gap: 5px; }
+  .game-title { min-height: 2.8em; font-size: 0.9rem; line-height: 1.4; }
+  .game-repo { min-height: 1.4em; font-size: 0.68rem; -webkit-line-clamp: 1; display: -webkit-box; -webkit-box-orient: vertical; }
+  .game-meta { min-height: 24px; gap: 5px; }
+  .badge { padding: 3px 6px; }
+  .game-actions { gap: 7px; }
+  .game-actions .pixel-button { min-height: 38px; padding-block: 7px; }
   .catalog-grid { grid-template-columns: 1fr; }
   .card-ad { grid-template-columns: auto minmax(0, 1fr); }
   .card-ad > :last-child { display: none; }

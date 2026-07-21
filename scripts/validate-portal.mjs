@@ -1,12 +1,13 @@
 import fs from "node:fs/promises";
 
-const [config, ads, indexHtml, appJs, playHtml, playJs] = await Promise.all([
+const [config, ads, indexHtml, appJs, playHtml, playJs, buildCatalogJs] = await Promise.all([
   readJson("config.json"),
   readJson("ads.json"),
   fs.readFile("index.html", "utf8"),
   fs.readFile("app.js", "utf8"),
   fs.readFile("play.html", "utf8"),
   fs.readFile("play.js", "utf8"),
+  fs.readFile("scripts/build-catalog.mjs", "utf8"),
 ]);
 
 const failures = [];
@@ -19,6 +20,7 @@ requireValue(config.title === "Web RPG", "config.title must be Web RPG");
 requireValue(config.tagline === "请务必收藏发布页，回家不迷路", "tagline does not match the requested copy");
 requireValue(isHttpUrl(config.publishUrl), "publishUrl must be HTTP(S)");
 requireValue(isHttpUrl(config.acquireUrl), "acquireUrl must be HTTP(S)");
+requireValue(config.showSourceButton === false, "source button must be hidden by default");
 requireValue(config.launcherPath === "/play.html", "launcherPath must point to /play.html");
 requireValue(Array.isArray(config.catalogEndpoints) && config.catalogEndpoints.length > 0, "catalogEndpoints is empty");
 requireValue(Array.isArray(config.adsEndpoints) && config.adsEndpoints.length > 0, "adsEndpoints is empty");
@@ -48,7 +50,7 @@ for (const ad of ads.ads || []) {
 requireValue(Number(ads.cardInterval?.min) >= 8, "card ad minimum interval must be at least 8");
 requireValue(Number(ads.cardInterval?.max) <= 12, "card ad maximum interval must be at most 12");
 requireValue(Number(ads.cardInterval?.min) <= Number(ads.cardInterval?.max), "card ad interval range is reversed");
-for (const slot of ["header", "search", "cards", "gameStart", "gameTimed"]) {
+for (const slot of ["header", "search", "cards", "gameOverlay", "gameStart", "gameTimed"]) {
   requireValue(Array.isArray(ads.slots?.[slot]) && ads.slots[slot].length > 0, `ad slot is empty: ${slot}`);
   for (const id of ads.slots?.[slot] || []) requireValue(ids.has(id), `unknown ad id ${id} in slot ${slot}`);
 }
@@ -61,14 +63,17 @@ requireValue(indexHtml.includes('rel="icon"'), "favicon link is missing");
 requireValue(indexHtml.includes('id="game-card-template"'), "game card template is missing");
 requireValue(indexHtml.includes('id="card-ad-template"'), "card ad template is missing");
 requireValue(indexHtml.includes('id="load-more"'), "incremental catalog control is missing");
+requireValue(indexHtml.includes('class="catalog-status sr-only"'), "catalog status must be visually hidden");
 requireValue(indexHtml.includes('class="pixel-button source"'), "icon-only source action is missing");
 requireValue(indexHtml.includes('rel="noopener noreferrer sponsored"'), "sponsored link protections are missing");
 requireValue(playHtml.includes('id="ad-modal"'), "game ad modal is missing");
+requireValue(playHtml.includes('id="game-top-ad"'), "fixed game overlay ad is missing");
 requireValue(playHtml.includes('content="noindex,follow"'), "launcher must not be indexed as a thin page");
 requireValue(playHtml.includes('href="/favicon.ico"'), "launcher favicon is missing");
 requireValue(playJs.includes("scheduleAds()"), "game ad scheduler is missing");
 requireValue(playJs.includes("iframeSandbox"), "iframe sandbox configuration is missing");
-requireValue(playHtml.includes('src="/play.js"'), "launcher must use the local hardened script");
+requireValue(playHtml.includes('src="/play.js?'), "launcher must use the local hardened script");
+requireValue(playJs.includes('renderTopAd()'), "fixed game overlay ad renderer is missing");
 requireValue(appJs.includes("REMOTE_CONFIG_FIELDS"), "portal runtime config whitelist is missing");
 requireValue(appJs.includes("allowedControlHosts"), "portal control-host restriction is missing");
 requireValue(appJs.includes("allowedAdHosts"), "portal ad-host restriction is missing");
@@ -77,6 +82,8 @@ requireValue(appJs.includes('loadData({ force: true })'), "manual refresh must b
 requireValue(appJs.includes("function setLoading"), "catalog loading layer state is missing");
 requireValue(appJs.includes("IntersectionObserver"), "automatic incremental loading is missing");
 requireValue(appJs.includes("value % columns === 0"), "card ads are not aligned to complete grid rows");
+requireValue(appJs.includes('fetchJson("/games.json"'), "catalog request is not prefetched in parallel");
+requireValue(buildCatalogJs.includes("totalSize: Number(game.totalSize)"), "published catalog omits game size");
 
 for (const [name, source] of [["index.html", indexHtml], ["app.js", appJs], ["play.html", playHtml], ["play.js", playJs]]) {
   requireValue(!source.includes("webrpg.org"), `${name} still references the old domain`);

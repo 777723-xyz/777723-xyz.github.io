@@ -16,6 +16,7 @@
 
 - `publishUrl`：顶部“发布页”和页脚链接。
 - `acquireUrl`：所有游戏卡片“获取”按钮的默认地址。
+- `showSourceButton`：是否显示源码按钮；默认 `false`，需要时改为 `true`。
 - `adsEndpoints`：填写 `https://777723.xyz/rpg-control/ads.json`。
 - `gameAd.startDelaySeconds`：进入启动器后首次广告等待时间。
 - `gameAd.repeatSeconds`：后续广告间隔，最低 60 秒。

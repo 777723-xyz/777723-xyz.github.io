@@ -4,6 +4,7 @@
   "tagline": "请务必收藏发布页，回家不迷路",
   "publishUrl": "https://777723.xyz",
   "acquireUrl": "https://777723.xyz",
+  "showSourceButton": false,
   "launcherPath": "/play.html",
   "catalogEndpoints": ["/games.json"],
   "adsEndpoints": ["/ads.json"],

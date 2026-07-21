@@ -1,6 +1,7 @@
 const elements = {
   game: document.querySelector("#game"),
   acquire: document.querySelector("#acquire"),
+  topAd: document.querySelector("#game-top-ad"),
   modal: document.querySelector("#ad-modal"),
   title: document.querySelector("#ad-title"),
   text: document.querySelector("#ad-text"),
@@ -17,11 +18,15 @@ const REMOTE_CONFIG_FIELDS = new Set([
 start().catch(showError);
 
 async function start() {
-  const local = await fetchJson("/config.json");
+  const [local, localGames, localAds] = await Promise.all([
+    fetchJson("/config.json"),
+    fetchJson("/games.json"),
+    fetchJson("/ads.json"),
+  ]);
   state.config = await loadRuntimeConfig(local);
   const [games, ads] = await Promise.all([
-    fetchFirst(state.config.catalogEndpoints),
-    fetchFirst(state.config.adsEndpoints || ["/ads.json"]),
+    usesOnlyEndpoint(state.config.catalogEndpoints, "/games.json") ? localGames : fetchFirst(state.config.catalogEndpoints),
+    usesOnlyEndpoint(state.config.adsEndpoints, "/ads.json") ? localAds : fetchFirst(state.config.adsEndpoints || ["/ads.json"]),
   ]);
   if (!Array.isArray(games)) throw new Error("游戏目录格式无效");
 
@@ -41,6 +46,7 @@ async function start() {
   document.title = `${state.game.title || state.game.name || "游戏"} · ${state.config.siteName || "777723.xyz"}`;
   if (state.config.iframeSandbox) elements.game.setAttribute("sandbox", state.config.iframeSandbox);
   elements.game.src = target.href;
+  renderTopAd();
   sendEvent("game_open");
   scheduleAds();
 }
@@ -105,13 +111,17 @@ async function fetchFirst(endpoints) {
   throw lastError || new Error("没有配置数据地址");
 }
 
+function usesOnlyEndpoint(endpoints, expected) {
+  return Array.isArray(endpoints) && endpoints.length === 1 && endpoints[0] === expected;
+}
+
 async function fetchJson(value, timeoutMs = 12000) {
   const url = safeHttpUrl(value, location.href);
   if (!url) throw new Error(`无效地址：${value}`);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetch(url, { cache: "no-store", signal: controller.signal });
+    const response = await fetch(url, { cache: "default", signal: controller.signal });
     if (!response.ok) throw new Error(`${url} 返回 ${response.status}`);
     if (!(response.headers.get("content-type") || "").includes("json")) throw new Error(`${url} 未返回 JSON`);
     return await response.json();
@@ -125,6 +135,17 @@ function scheduleAds() {
   if (options.enabled === false) return;
   setTimeout(() => showAd("gameStart"), Math.max(0, number(options.startDelaySeconds, 45)) * 1000);
   setInterval(() => showAd("gameTimed"), Math.max(60, number(options.repeatSeconds, 600)) * 1000);
+}
+
+function renderTopAd() {
+  const ads = getSlot("gameOverlay");
+  if (!ads.length) return;
+  const ad = ads[Math.floor(Date.now() / 86_400_000) % ads.length];
+  const url = safeAllowedUrl(ad.url, state.config.allowedAdHosts);
+  if (!url) return;
+  elements.topAd.textContent = ad.text;
+  elements.topAd.href = url.href;
+  elements.topAd.hidden = false;
 }
 
 function showAd(slot) {
@@ -177,6 +198,7 @@ function startCloseCountdown() {
 elements.close.addEventListener("click", () => { elements.modal.hidden = true; sendEvent("game_ad_close"); });
 elements.link.addEventListener("click", () => sendEvent("game_ad_click"));
 elements.acquire.addEventListener("click", () => sendEvent("acquire_click"));
+elements.topAd.addEventListener("click", () => sendEvent("game_ad_click", { slot: "gameOverlay" }));
 
 function showError(error) {
   document.body.innerHTML = `<main class="error"><div class="error-box"><h1>游戏暂时无法启动</h1><p>${escapeHtml(error?.message || "未知错误")}</p><p><a href="/">返回游戏目录</a></p></div></main>`;

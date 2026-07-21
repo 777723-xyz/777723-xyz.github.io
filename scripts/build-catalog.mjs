@@ -82,6 +82,7 @@ function publicGame(game) {
     status: "verified",
     pagesUrl: game.pagesUrl,
     entryPath: game.entryPath || "index.html",
+    ...(Number.isFinite(Number(game.totalSize)) ? { totalSize: Number(game.totalSize) } : {}),
     ...(typeof game.cover === "string" ? { cover: game.cover } : {}),
   };
 }

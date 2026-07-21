@@ -23,6 +23,7 @@
     "header": ["acg-01"],
     "search": ["acg-02"],
     "cards": ["acg-03", "acg-04", "acg-05", "acg-06", "acg-07", "acg-08", "acg-09", "acg-10", "acg-11", "acg-12", "acg-13"],
+    "gameOverlay": ["acg-01", "acg-02", "acg-09"],
     "gameStart": ["acg-06", "acg-01", "acg-13"],
     "gameTimed": ["acg-03", "acg-08", "acg-10", "acg-12"]
   }

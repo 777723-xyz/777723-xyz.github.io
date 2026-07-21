@@ -73,7 +73,7 @@ let autoLoadObserver;
 let resizeFrame;
 
 const REMOTE_CONFIG_FIELDS = new Set([
-  "siteName", "title", "tagline", "publishUrl", "acquireUrl", "defaultCoverUrl", "adsEndpoints",
+  "siteName", "title", "tagline", "publishUrl", "acquireUrl", "showSourceButton", "defaultCoverUrl", "adsEndpoints",
 ]);
 
 initializeUi();
@@ -106,11 +106,19 @@ async function loadData({ force = false } = {}) {
 
   try {
     const cacheMode = force ? "no-store" : "default";
-    const localConfig = await fetchJson("/config.json", 12000, cacheMode);
+    const [localConfig, localCatalog, localAds] = await Promise.all([
+      fetchJson("/config.json", 12000, cacheMode),
+      fetchJson("/games.json", 12000, cacheMode),
+      fetchJson("/ads.json", 12000, cacheMode),
+    ]);
     state.config = await loadRuntimeConfig(localConfig, cacheMode);
     const [catalog, ads] = await Promise.all([
-      fetchFirstAvailable(state.config.catalogEndpoints, cacheMode),
-      fetchFirstAvailable(state.config.adsEndpoints || ["/ads.json"], cacheMode),
+      usesOnlyEndpoint(state.config.catalogEndpoints, "/games.json")
+        ? localCatalog
+        : fetchFirstAvailable(state.config.catalogEndpoints, cacheMode),
+      usesOnlyEndpoint(state.config.adsEndpoints, "/ads.json")
+        ? localAds
+        : fetchFirstAvailable(state.config.adsEndpoints || ["/ads.json"], cacheMode),
     ]);
 
     state.ads = normalizeAds(ads);
@@ -158,6 +166,7 @@ function mergeConfig(base, override) {
   }
   if (typeof merged.publishUrl === "string" && !safeAllowedUrl(merged.publishUrl, base.allowedAdHosts)) merged.publishUrl = base.publishUrl;
   if (typeof merged.acquireUrl === "string" && !safeAllowedUrl(merged.acquireUrl, base.allowedAdHosts)) merged.acquireUrl = base.acquireUrl;
+  if (typeof merged.showSourceButton !== "boolean") merged.showSourceButton = base.showSourceButton === true;
   if (typeof merged.defaultCoverUrl === "string" && !safeAllowedUrl(merged.defaultCoverUrl, base.allowedCoverHosts)) merged.defaultCoverUrl = base.defaultCoverUrl;
   if (Array.isArray(merged.adsEndpoints)) {
     merged.adsEndpoints = merged.adsEndpoints.filter((endpoint) => safeAllowedUrl(endpoint, base.allowedControlHosts, location.href, true));
@@ -207,6 +216,10 @@ async function fetchFirstAvailable(endpoints, cacheMode = "default") {
     }
   }
   throw lastError || new Error("All endpoints failed");
+}
+
+function usesOnlyEndpoint(endpoints, expected) {
+  return Array.isArray(endpoints) && endpoints.length === 1 && endpoints[0] === expected;
 }
 
 async function fetchJson(url, timeoutMs = 12000, cacheMode = "default") {
@@ -354,13 +367,15 @@ function createGameCard(game) {
   play.dataset.gameId = game.id;
 
   const source = card.querySelector(".source");
-  if (game.sourceUrl) {
+  const actions = card.querySelector(".game-actions");
+  if (state.config.showSourceButton === true && game.sourceUrl) {
     source.href = game.sourceUrl;
     source.dataset.sourceId = game.id;
     source.setAttribute("aria-label", `${copy().source}：${game.title}`);
     source.title = `${copy().source}：${game.title}`;
   } else {
     source.remove();
+    actions.classList.add("two-actions");
   }
 
   const acquire = card.querySelector(".acquire");

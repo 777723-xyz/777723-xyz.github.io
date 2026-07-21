@@ -22,7 +22,7 @@
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="apple-touch-icon" href="/assets/brand-avatar.webp" />
     <link rel="preload" as="image" href="/assets/webrpg-background-mobile.webp" type="image/webp" fetchpriority="high" />
-    <link rel="stylesheet" href="/styles.css?v=loading-seo-20260721" />
+    <link rel="stylesheet" href="/styles.css?v=compact-20260721" />
   </head>
   <body>
     <div class="site-shell">
@@ -79,7 +79,7 @@
           <a id="search-ad" target="_blank" rel="noopener noreferrer sponsored"></a>
         </aside>
 
-        <p id="catalog-status" class="catalog-status" role="status">正在读取游戏目录…</p>
+        <p id="catalog-status" class="catalog-status sr-only" role="status">正在读取游戏目录…</p>
         <main id="catalog" class="catalog-grid" aria-live="polite"></main>
         <div id="catalog-more" class="catalog-more" hidden>
           <button id="load-more" class="pixel-button" type="button">加载更多</button>
@@ -94,8 +94,8 @@
     <template id="game-card-template">
       <article class="game-card">
         <div class="cover-frame">
-          <img class="cover-base" alt="" aria-hidden="true" loading="lazy" decoding="async" />
-          <img class="cover-image" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" />
+          <img class="cover-base" alt="" aria-hidden="true" loading="lazy" decoding="async" fetchpriority="low" />
+          <img class="cover-image" alt="" loading="lazy" decoding="async" fetchpriority="low" referrerpolicy="no-referrer" />
         </div>
         <div class="game-body">
           <div class="game-heading">
@@ -131,6 +131,6 @@
       </a>
     </template>
 
-    <script type="module" src="/app.js?v=loading-seo-20260721"></script>
+    <script type="module" src="/app.js?v=compact-20260721"></script>
   </body>
 </html>
