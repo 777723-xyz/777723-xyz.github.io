@@ -79,7 +79,7 @@ function initializeUi() {
     state.visibleCount = PAGE_SIZE;
     render();
   });
-  elements.reload.addEventListener("click", loadData);
+  elements.reload.addEventListener("click", () => loadData({ force: true }));
   elements.loadMore.addEventListener("click", () => {
     state.visibleCount += PAGE_SIZE;
     render();
@@ -91,18 +91,19 @@ function initializeUi() {
   applyLanguage();
 }
 
-async function loadData() {
+async function loadData({ force = false } = {}) {
   if (state.loading) return;
   state.loading = true;
   elements.reload.classList.add("is-loading");
   setStatus(copy().loading);
 
   try {
-    const localConfig = await fetchJson("/config.json");
-    state.config = await loadRuntimeConfig(localConfig);
+    const cacheMode = force ? "no-store" : "default";
+    const localConfig = await fetchJson("/config.json", 12000, cacheMode);
+    state.config = await loadRuntimeConfig(localConfig, cacheMode);
     const [catalog, ads] = await Promise.all([
-      fetchFirstAvailable(state.config.catalogEndpoints),
-      fetchFirstAvailable(state.config.adsEndpoints || ["/ads.json"]),
+      fetchFirstAvailable(state.config.catalogEndpoints, cacheMode),
+      fetchFirstAvailable(state.config.adsEndpoints || ["/ads.json"], cacheMode),
     ]);
 
     state.ads = normalizeAds(ads);
@@ -123,7 +124,7 @@ async function loadData() {
   }
 }
 
-async function loadRuntimeConfig(localConfig) {
+async function loadRuntimeConfig(localConfig, cacheMode) {
   const endpoints = Array.isArray(localConfig.runtimeConfigEndpoints)
     ? localConfig.runtimeConfigEndpoints
     : [];
@@ -131,7 +132,7 @@ async function loadRuntimeConfig(localConfig) {
   for (const endpoint of endpoints) {
     if (!safeAllowedUrl(endpoint, localConfig.allowedControlHosts, location.href, true)) continue;
     try {
-      const remote = await fetchJson(endpoint, 4000);
+      const remote = await fetchJson(endpoint, 4000, cacheMode);
       return mergeConfig(localConfig, remote);
     } catch (error) {
       console.warn(`Runtime config unavailable: ${endpoint}`, error);
@@ -185,14 +186,14 @@ function mergeConfig(base, override) {
   };
 }
 
-async function fetchFirstAvailable(endpoints) {
+async function fetchFirstAvailable(endpoints, cacheMode = "default") {
   if (!Array.isArray(endpoints) || endpoints.length === 0) {
     throw new Error("No endpoint is configured");
   }
   let lastError;
   for (const endpoint of endpoints) {
     try {
-      return await fetchJson(endpoint);
+      return await fetchJson(endpoint, 12000, cacheMode);
     } catch (error) {
       lastError = error;
     }
@@ -200,13 +201,13 @@ async function fetchFirstAvailable(endpoints) {
   throw lastError || new Error("All endpoints failed");
 }
 
-async function fetchJson(url, timeoutMs = 12000) {
+async function fetchJson(url, timeoutMs = 12000, cacheMode = "default") {
   const target = safeHttpUrl(url, location.href);
   if (!target) throw new Error(`Invalid endpoint: ${url}`);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetch(target, { cache: "no-store", signal: controller.signal });
+    const response = await fetch(target, { cache: cacheMode, signal: controller.signal });
     if (!response.ok) throw new Error(`${target} returned ${response.status}`);
     const type = response.headers.get("content-type") || "";
     if (!type.includes("json")) throw new Error(`${target} did not return JSON`);

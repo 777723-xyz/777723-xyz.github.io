@@ -67,6 +67,7 @@ requireValue(appJs.includes("REMOTE_CONFIG_FIELDS"), "portal runtime config whit
 requireValue(appJs.includes("allowedControlHosts"), "portal control-host restriction is missing");
 requireValue(appJs.includes("allowedAdHosts"), "portal ad-host restriction is missing");
 requireValue(appJs.includes("const PAGE_SIZE = 24"), "portal initial render limit is missing");
+requireValue(appJs.includes('loadData({ force: true })'), "manual refresh must bypass the catalog cache");
 
 for (const [name, source] of [["index.html", indexHtml], ["app.js", appJs], ["play.html", playHtml], ["play.js", playJs]]) {
   requireValue(!source.includes("webrpg.org"), `${name} still references the old domain`);
