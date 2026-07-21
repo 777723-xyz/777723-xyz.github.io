@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 
-const [config, ads, indexHtml, appJs, playHtml, playJs, buildCatalogJs] = await Promise.all([
+const [config, ads, indexHtml, appJs, playHtml, playJs, buildCatalogJs, serviceWorkerJs, placeholderStat] = await Promise.all([
   readJson("config.json"),
   readJson("ads.json"),
   fs.readFile("index.html", "utf8"),
@@ -8,6 +8,8 @@ const [config, ads, indexHtml, appJs, playHtml, playJs, buildCatalogJs] = await 
   fs.readFile("play.html", "utf8"),
   fs.readFile("play.js", "utf8"),
   fs.readFile("scripts/build-catalog.mjs", "utf8"),
+  fs.readFile("service-worker.js", "utf8"),
+  fs.stat("assets/loading-placeholder.jpg"),
 ]);
 
 const failures = [];
@@ -28,6 +30,8 @@ requireValue(Array.isArray(config.allowedControlHosts) && config.allowedControlH
 requireValue(Array.isArray(config.allowedAdHosts) && config.allowedAdHosts.length > 0, "allowedAdHosts is empty");
 requireValue(Array.isArray(config.allowedCoverHosts) && config.allowedCoverHosts.length > 0, "allowedCoverHosts is empty");
 requireValue(Array.isArray(config.allowedGameHosts) && config.allowedGameHosts.includes("777723-xyz.github.io"), "own Pages host is not allowed");
+requireValue(config.defaultCoverUrl === "/assets/loading-placeholder.jpg", "default cover must use the local placeholder");
+requireValue(placeholderStat.size > 0, "local cover placeholder is empty");
 requireValue(config.gameAd?.enabled === true, "game ads must be enabled");
 requireValue(Number(config.gameAd?.repeatSeconds) >= 60, "game ad repeat must be at least 60 seconds");
 requireValue(Number(config.gameAd?.closeDelaySeconds) >= 0, "game ad close delay is invalid");
@@ -81,6 +85,9 @@ requireValue(appJs.includes("const PAGE_SIZE = 24"), "portal initial render limi
 requireValue(appJs.includes('loadData({ force: true })'), "manual refresh must bypass the catalog cache");
 requireValue(appJs.includes("function setLoading"), "catalog loading layer state is missing");
 requireValue(appJs.includes("IntersectionObserver"), "automatic incremental loading is missing");
+requireValue(appJs.includes("function initializeCoverLoading"), "viewport-based cover loading is missing");
+requireValue(appJs.includes('register("/service-worker.js")'), "portal cache registration is missing");
+requireValue(serviceWorkerJs.includes('const CACHE_NAME = "portal-cache-v1"'), "portal cache version is missing");
 requireValue(appJs.includes("value % columns === 0"), "card ads are not aligned to complete grid rows");
 requireValue(appJs.includes('fetchJson("/games.json"'), "catalog request is not prefetched in parallel");
 requireValue(buildCatalogJs.includes("totalSize: Number(game.totalSize)"), "published catalog omits game size");

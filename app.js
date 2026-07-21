@@ -70,6 +70,7 @@ const state = {
 
 const PAGE_SIZE = 24;
 let autoLoadObserver;
+let coverLoadObserver;
 let resizeFrame;
 
 const REMOTE_CONFIG_FIELDS = new Set([
@@ -89,7 +90,9 @@ function initializeUi() {
     showNextPage();
   });
   initializeAutoLoad();
+  initializeCoverLoading();
   window.addEventListener("resize", scheduleGridRender, { passive: true });
+  window.addEventListener("load", registerServiceWorker, { once: true });
   document.querySelectorAll("[data-language]").forEach((button) => {
     button.addEventListener("click", () => setLanguage(button.dataset.language));
   });
@@ -306,6 +309,7 @@ function render() {
     ? state.games.filter((game) => game.searchText.includes(query))
     : state.games;
   const visibleGames = games.slice(0, state.visibleCount);
+  resetObservedCovers();
   elements.catalog.replaceChildren();
   state.gridColumns = getGridColumnCount();
 
@@ -340,15 +344,20 @@ function render() {
 
 function createGameCard(game) {
   const card = elements.gameTemplate.content.cloneNode(true);
-  const defaultCover = safeAllowedUrl(state.config.defaultCoverUrl, state.config.allowedCoverHosts)?.href || "";
+  const defaultCover = safeAllowedUrl(
+    state.config.defaultCoverUrl,
+    state.config.allowedCoverHosts,
+    location.href,
+    true,
+  )?.href || "";
   const base = card.querySelector(".cover-base");
   const image = card.querySelector(".cover-image");
   base.src = defaultCover;
   if (game.coverUrl) {
-    image.src = game.coverUrl;
     image.alt = `${game.title} 封面`;
     image.addEventListener("load", () => image.classList.add("is-loaded"), { once: true });
     image.addEventListener("error", () => image.remove(), { once: true });
+    queueCoverImage(image, game.coverUrl);
   } else {
     image.remove();
   }
@@ -470,6 +479,52 @@ function initializeAutoLoad() {
     }
   }, { rootMargin: "700px 0px" });
   autoLoadObserver.observe(elements.catalogMore);
+}
+
+function initializeCoverLoading() {
+  if (!("IntersectionObserver" in window)) return;
+  coverLoadObserver = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      loadCoverImage(entry.target);
+      coverLoadObserver.unobserve(entry.target);
+    }
+  }, { rootMargin: "360px 0px" });
+}
+
+function queueCoverImage(image, url) {
+  image.dataset.src = url;
+  if (coverLoadObserver) {
+    coverLoadObserver.observe(image);
+  } else {
+    loadCoverImage(image);
+  }
+}
+
+function loadCoverImage(image) {
+  const url = image.dataset.src;
+  if (!url) return;
+  delete image.dataset.src;
+  image.src = url;
+}
+
+function resetObservedCovers() {
+  if (!coverLoadObserver) return;
+  elements.catalog.querySelectorAll(".cover-image[data-src]").forEach((image) => {
+    coverLoadObserver.unobserve(image);
+  });
+}
+
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+  const register = () => navigator.serviceWorker.register("/service-worker.js").catch((error) => {
+    console.warn("Portal cache unavailable", error);
+  });
+  if ("requestIdleCallback" in window) {
+    requestIdleCallback(register, { timeout: 3000 });
+  } else {
+    setTimeout(register, 0);
+  }
 }
 
 function scheduleGridRender() {
