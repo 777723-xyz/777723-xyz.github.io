@@ -324,9 +324,7 @@ function buildPlayUrl(pagesUrl, entryPath) {
 
 function render() {
   const query = elements.search.value.trim().toLowerCase();
-  const games = query
-    ? state.games.filter((game) => game.searchText.includes(query))
-    : state.games;
+  const games = getFilteredGames(query);
   const visibleGames = games.slice(0, state.visibleCount);
   resetObservedCovers();
   elements.catalog.replaceChildren();
@@ -339,26 +337,41 @@ function render() {
     return;
   }
 
+  appendCatalogPage(games, 0, visibleGames.length);
+  elements.catalogMore.hidden = visibleGames.length >= games.length;
+  elements.loadMore.textContent = copy().loadMore;
+  setStatus(query ? copy().matched(visibleGames.length, games.length) : copy().loaded(visibleGames.length, games.length));
+}
+
+function getFilteredGames(query = elements.search.value.trim().toLowerCase()) {
+  return query
+    ? state.games.filter((game) => game.searchText.includes(query))
+    : state.games;
+}
+
+function appendCatalogPage(games, start, end) {
+  if (end <= start) return;
   const fragment = document.createDocumentFragment();
   const cardAds = getSlotAds("cards");
   const interval = getCardInterval();
   let adIndex = 0;
-  let nextAdAt = cardAds.length ? intervalFor(adIndex, interval, state.gridColumns) : Number.POSITIVE_INFINITY;
+  let nextAdAt = cardAds.length
+    ? intervalFor(adIndex, interval, state.gridColumns)
+    : Number.POSITIVE_INFINITY;
 
-  visibleGames.forEach((game, index) => {
-    fragment.append(createGameCard(game));
-    const position = index + 1;
-    if (position === nextAdAt && position < visibleGames.length) {
+  // Walk from the beginning to keep card-ad positions stable when a later page
+  // is appended. Existing cards are never recreated during automatic loading.
+  for (let position = 1; position <= end; position += 1) {
+    if (position > start) fragment.append(createGameCard(games[position - 1]));
+    if (position !== nextAdAt) continue;
+    if (position >= start && position < games.length) {
       fragment.append(createCardAd(cardAds[adIndex % cardAds.length]));
-      adIndex += 1;
-      nextAdAt += intervalFor(adIndex, interval, state.gridColumns);
     }
-  });
+    adIndex += 1;
+    nextAdAt += intervalFor(adIndex, interval, state.gridColumns);
+  }
 
   elements.catalog.append(fragment);
-  elements.catalogMore.hidden = visibleGames.length >= games.length;
-  elements.loadMore.textContent = copy().loadMore;
-  setStatus(query ? copy().matched(visibleGames.length, games.length) : copy().loaded(visibleGames.length, games.length));
 }
 
 function createGameCard(game) {
@@ -484,9 +497,17 @@ function getGridColumnCount() {
 }
 
 function showNextPage() {
-  if (state.visibleCount >= state.games.length) return;
-  state.visibleCount = Math.min(state.visibleCount + PAGE_SIZE, state.games.length);
-  render();
+  const games = getFilteredGames();
+  const start = Math.min(state.visibleCount, games.length);
+  const end = Math.min(start + PAGE_SIZE, games.length);
+  if (end <= start) return;
+  state.visibleCount = end;
+  state.gridColumns = getGridColumnCount();
+  appendCatalogPage(games, start, end);
+  elements.catalogMore.hidden = end >= games.length;
+  elements.loadMore.textContent = copy().loadMore;
+  const query = elements.search.value.trim().toLowerCase();
+  setStatus(query ? copy().matched(end, games.length) : copy().loaded(end, games.length));
 }
 
 function initializeAutoLoad() {
