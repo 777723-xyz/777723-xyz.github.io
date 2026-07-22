@@ -63,6 +63,7 @@ for (const slot of ["header", "search", "cards", "gameOverlay", "gameStart", "ga
 }
 
 requireValue(indexHtml.includes('id="publish-link"'), "publish link is missing");
+requireValue(indexHtml.includes('id="brand-title"'), "brand title is not configurable");
 requireValue(indexHtml.includes('id="catalog-loader"'), "catalog loading layer is missing");
 requireValue(indexHtml.includes('rel="canonical"'), "canonical URL is missing");
 requireValue(indexHtml.includes('property="og:title"'), "Open Graph title is missing");
@@ -85,6 +86,7 @@ requireValue(appJs.includes("REMOTE_CONFIG_FIELDS"), "portal runtime config whit
 requireValue(appJs.includes("allowedControlHosts"), "portal control-host restriction is missing");
 requireValue(appJs.includes("allowedAdHosts"), "portal ad-host restriction is missing");
 requireValue(appJs.includes("setMetaContent"), "SEO metadata is not driven by config.json");
+requireValue(appJs.includes("elements.brandTitle.textContent"), "visible site title is not driven by config.json");
 requireValue(appJs.includes("const PAGE_SIZE = 24"), "portal initial render limit is missing");
 requireValue(appJs.includes('loadData({ force: true })'), "manual refresh must bypass the catalog cache");
 requireValue(appJs.includes("function setLoading"), "catalog loading layer state is missing");

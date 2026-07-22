@@ -7,6 +7,7 @@ const elements = {
   loadMore: document.querySelector("#load-more"),
   search: document.querySelector("#search"),
   reload: document.querySelector("#reload"),
+  brandTitle: document.querySelector("#brand-title"),
   tagline: document.querySelector("#tagline"),
   publish: document.querySelector("#publish-link"),
   footerPublish: document.querySelector("#footer-publish"),
@@ -597,7 +598,9 @@ function applyConfig() {
   elements.footerPublish.href = publishUrl;
   const siteTitle = `${state.config.title || "Web RPG"} · ${state.config.siteName || "777723.xyz"}`;
   document.title = siteTitle;
+  elements.brandTitle.textContent = state.config.title || "Web RPG";
   setMetaContent('meta[name="description"]', state.config.description);
+  setMetaContent('meta[property="og:site_name"]', state.config.title || "Web RPG");
   setMetaContent('meta[property="og:title"]', siteTitle);
   setMetaContent('meta[property="og:description"]', state.config.socialDescription || state.config.description);
   setMetaContent('meta[name="twitter:title"]', siteTitle);
@@ -624,7 +627,9 @@ function setLanguage(language) {
 function applyLanguage() {
   const language = state.language in COPY ? state.language : "zh-Hans";
   document.documentElement.lang = language;
-  elements.tagline.textContent = copy().tagline;
+  elements.tagline.textContent = language === "zh-Hans" && typeof state.config.tagline === "string"
+    ? state.config.tagline
+    : copy().tagline;
   elements.search.placeholder = copy().searchPlaceholder;
   if (state.loading) elements.loaderLabel.textContent = copy().loading;
   document.querySelectorAll("[data-language]").forEach((button) => {
