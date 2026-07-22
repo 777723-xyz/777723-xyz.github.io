@@ -2,6 +2,8 @@ import fs from "node:fs/promises";
 
 const sourceUrl = process.env.CATALOG_SOURCE_URL
   || "https://raw.githubusercontent.com/777723-xyz/game-index-runner/main/list.json";
+const fallbackCatalogUrl = process.env.LAST_PUBLISHED_CATALOG_URL
+  || "https://777723-xyz.github.io/games.json";
 const allowedHosts = new Set(
   (process.env.ALLOWED_GAME_HOSTS || "777723-xyz.github.io")
     .split(",")
@@ -44,7 +46,8 @@ await Promise.all(Array.from({ length: concurrency }, worker));
 // metadata.  The public portal only receives fields it renders or needs to
 // launch an already-verified game, so old upstream Pages/cover URLs never leak
 // into the browser catalog.
-const published = checks.filter((item) => item.ok).map((item) => publicGame(item.game));
+let published = checks.filter((item) => item.ok).map((item) => publicGame(item.game));
+let usedFallback = false;
 const unavailable = checks.filter((item) => !item.ok).map((item) => ({
   id: item.game.id,
   pagesUrl: item.game.pagesUrl,
@@ -53,7 +56,13 @@ const unavailable = checks.filter((item) => !item.ok).map((item) => ({
 }));
 
 if (candidates.length > 0 && published.length === 0) {
-  throw new Error("Availability check rejected every candidate; refusing to publish an empty catalog");
+  const fallback = await loadFallbackCatalog();
+  if (fallback.length === 0) {
+    throw new Error("Availability check rejected every candidate; refusing to publish an empty catalog");
+  }
+  published = fallback;
+  usedFallback = true;
+  console.warn(`Availability checks rejected every candidate; retaining ${fallback.length} games from the last published catalog`);
 }
 
 await fs.writeFile("games.json", `${JSON.stringify(published, null, 2)}\n`, "utf8");
@@ -63,6 +72,7 @@ await fs.writeFile("catalog-manifest.json", `${JSON.stringify({
   sourceCount: source.length,
   candidateCount: candidates.length,
   publishedCount: published.length,
+  usedFallback,
   unavailableCount: unavailable.length,
   unavailable,
 }, null, 2)}\n`, "utf8");
@@ -115,6 +125,27 @@ async function checkGame(game) {
     }
   }
   return { ok: false, game, status: 0, error: "unknown" };
+}
+
+async function loadFallbackCatalog() {
+  try {
+    const separator = fallbackCatalogUrl.includes("?") ? "&" : "?";
+    const response = await fetch(`${fallbackCatalogUrl}${separator}fallback=${Date.now()}`, {
+      headers: { "User-Agent": "777723-catalog-builder" },
+    });
+    if (!response.ok) return [];
+    const catalog = await response.json();
+    if (!Array.isArray(catalog)) return [];
+    return catalog
+      .filter((game) => game?.status === "verified" && typeof game.pagesUrl === "string")
+      .filter((game) => {
+        try { return allowedHosts.has(new URL(game.pagesUrl).hostname); } catch { return false; }
+      })
+      .map(publicGame);
+  } catch (error) {
+    console.warn(`Last published catalog unavailable: ${error.name || error.message}`);
+    return [];
+  }
 }
 
 function parsePositiveInt(value) {

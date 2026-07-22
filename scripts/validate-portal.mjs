@@ -98,6 +98,7 @@ requireValue(appJs.includes("const aSize = a.dataSize ?? -1"), "portal must sort
 requireValue(buildCatalogJs.includes("totalSize: Number(game.totalSize)"), "published catalog omits game size");
 requireValue(buildCatalogJs.includes("dataSize: Number(game.dataSize)"), "published catalog omits dataSize used for sorting");
 requireValue(buildCatalogJs.includes('game.title?.trim() === "__template__"'), "template repositories must be excluded like upstream");
+requireValue(buildCatalogJs.includes("loadFallbackCatalog"), "catalog build must retain the last published catalog during transient availability failures");
 
 for (const [name, source] of [["index.html", indexHtml], ["app.js", appJs], ["play.html", playHtml], ["play.js", playJs]]) {
   requireValue(!source.includes("webrpg.org"), `${name} still references the old domain`);
