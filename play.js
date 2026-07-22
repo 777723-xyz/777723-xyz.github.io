@@ -41,7 +41,7 @@ async function start() {
 
   const acquire = safeAllowedUrl(state.game.acquireUrl, state.config.allowedAdHosts)
     || safeAllowedUrl(state.config.acquireUrl, state.config.allowedAdHosts)
-    || new URL("https://777723.xyz/");
+    || new URL("https://ecy.al/");
   elements.acquire.href = acquire.href;
   document.title = `${state.game.title || state.game.name || "游戏"} · ${state.config.siteName || "777723.xyz"}`;
   if (state.config.iframeSandbox) elements.game.setAttribute("sandbox", state.config.iframeSandbox);

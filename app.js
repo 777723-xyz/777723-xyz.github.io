@@ -421,7 +421,7 @@ function createGameCard(game) {
   }
 
   const acquire = card.querySelector(".acquire");
-  acquire.href = game.acquireUrl || safeAllowedUrl(state.config.acquireUrl, state.config.allowedAdHosts)?.href || "https://777723.xyz/";
+  acquire.href = game.acquireUrl || safeAllowedUrl(state.config.acquireUrl, state.config.allowedAdHosts)?.href || "https://ecy.al/";
   acquire.dataset.acquireId = game.id;
   applyCopy(card);
   return card;
@@ -593,7 +593,7 @@ function clampInteger(value, min, max, fallback) {
 }
 
 function applyConfig() {
-  const publishUrl = safeAllowedUrl(state.config.publishUrl, state.config.allowedAdHosts)?.href || "https://777723.xyz/";
+  const publishUrl = safeAllowedUrl(state.config.publishUrl, state.config.allowedAdHosts)?.href || "https://ecy.al/";
   elements.publish.href = publishUrl;
   elements.footerPublish.href = publishUrl;
   const siteTitle = `${state.config.title || "Web RPG"} · ${state.config.siteName || "777723.xyz"}`;

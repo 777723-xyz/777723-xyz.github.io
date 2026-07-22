@@ -25,6 +25,8 @@ requireValue(typeof config.description === "string" && config.description.trim()
 requireValue(typeof config.socialDescription === "string" && config.socialDescription.trim().length >= 12, "config.socialDescription is missing or too short");
 requireValue(isHttpUrl(config.publishUrl), "publishUrl must be HTTP(S)");
 requireValue(isHttpUrl(config.acquireUrl), "acquireUrl must be HTTP(S)");
+requireValue(new URL(config.publishUrl).hostname === "ecy.al", "publishUrl must use ecy.al");
+requireValue(new URL(config.acquireUrl).hostname === "ecy.al", "acquireUrl must use ecy.al");
 requireValue(config.showSourceButton === false, "source button must be hidden by default");
 requireValue(config.launcherPath === "/play.html", "launcherPath must point to /play.html");
 requireValue(Array.isArray(config.catalogEndpoints) && config.catalogEndpoints.length > 0, "catalogEndpoints is empty");
@@ -51,6 +53,7 @@ for (const ad of ads.ads || []) {
   requireValue(!texts.has(ad.text), `duplicate ad copy: ${ad.id}`);
   requireValue(isHttpUrl(ad.url), `invalid ad URL: ${ad.id}`);
   requireValue(config.allowedAdHosts.includes(new URL(ad.url).hostname), `ad URL is outside allowed ad hosts: ${ad.id}`);
+  requireValue(new URL(ad.url).hostname === "ecy.al", `ad URL must use ecy.al: ${ad.id}`);
   ids.add(ad.id);
   texts.add(ad.text);
 }

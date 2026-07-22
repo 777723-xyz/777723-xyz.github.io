@@ -17,7 +17,7 @@
 3. 修改后提交到 `main`。
 4. 等待 `Deploy public game catalog` 成功，再访问 `https://yx.ecy.al/`。
 
-广告链接必须使用 `config.json` 中 `allowedAdHosts` 允许的主机；否则部署校验会阻止发布。不要把 API 密钥、SSH 密钥、密码或统计私钥写进仓库。
+广告链接必须使用 `config.json` 中 `allowedAdHosts` 允许的主机；当前默认发布页和广告链接为 `https://ecy.al`。部署校验会阻止不在白名单中的链接。游戏卡片“获取”默认地址修改 `config.json` 的 `acquireUrl`；`ads.json` 只管理广告链接，不重复承担获取地址。不要把 API 密钥、SSH 密钥、密码或统计私钥写进仓库。
 
 ## 域名与流量
 
