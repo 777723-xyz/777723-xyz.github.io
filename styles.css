@@ -279,6 +279,15 @@ svg {
 
 .reload-button.is-loading svg { animation: spin 700ms steps(8, end) infinite; }
 
+.ads-toggle {
+  width: 46px;
+  padding-inline: 10px;
+  background: var(--red);
+  color: var(--paper-soft);
+}
+
+.ads-toggle.is-active { background: var(--green); }
+
 .ad-slot { margin-bottom: 18px; }
 
 .ad-slot a {

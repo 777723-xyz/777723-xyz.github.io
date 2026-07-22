@@ -11,6 +11,7 @@ const elements = {
   tagline: document.querySelector("#tagline"),
   publish: document.querySelector("#publish-link"),
   footerPublish: document.querySelector("#footer-publish"),
+  adsToggle: document.querySelector("#ads-toggle"),
   headerAd: document.querySelector("#header-ad"),
   searchAd: document.querySelector("#search-ad"),
   gameTemplate: document.querySelector("#game-card-template"),
@@ -30,6 +31,8 @@ const COPY = {
     source: "源码",
     acquire: "获取",
     loadMore: "加载更多",
+    hideAds: "关闭广告",
+    showAds: "显示广告",
   },
   en: {
     tagline: "Bookmark the permanent release page",
@@ -43,6 +46,8 @@ const COPY = {
     source: "Source",
     acquire: "Get",
     loadMore: "Load more",
+    hideAds: "Hide ads",
+    showAds: "Show ads",
   },
   ja: {
     tagline: "恒久公開ページをブックマークしてください",
@@ -56,6 +61,8 @@ const COPY = {
     source: "ソース",
     acquire: "取得",
     loadMore: "さらに読み込む",
+    hideAds: "広告を非表示",
+    showAds: "広告を表示",
   },
 };
 
@@ -69,6 +76,7 @@ const state = {
   language: getInitialLanguage(),
   loading: false,
   visibleCount: 24,
+  adsHidden: readAdsHiddenPreference(),
 };
 
 const PAGE_SIZE = 24;
@@ -91,6 +99,7 @@ function initializeUi() {
     render();
   });
   elements.reload.addEventListener("click", () => loadData({ force: true }));
+  elements.adsToggle.addEventListener("click", toggleAdsVisibility);
   elements.loadMore.addEventListener("click", () => {
     showNextPage();
   });
@@ -421,7 +430,7 @@ function createGameCard(game) {
   }
 
   const acquire = card.querySelector(".acquire");
-  acquire.href = game.acquireUrl || safeAllowedUrl(state.config.acquireUrl, state.config.allowedAdHosts)?.href || "https://ecy.al/";
+  acquire.href = game.acquireUrl || safeAllowedUrl(state.config.acquireUrl, state.config.allowedAdHosts)?.href || "https://pipifu.com/";
   acquire.dataset.acquireId = game.id;
   applyCopy(card);
   return card;
@@ -438,12 +447,15 @@ function normalizeAds(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return { ads: [], slots: {} };
   return {
     ...value,
+    enabled: value.enabled !== false,
+    slotEnabled: value.slotEnabled && typeof value.slotEnabled === "object" ? value.slotEnabled : {},
     ads: Array.isArray(value.ads) ? value.ads.filter(isValidAd) : [],
     slots: value.slots && typeof value.slots === "object" ? value.slots : {},
   };
 }
 
 function getSlotAds(slot) {
+  if (state.adsHidden || state.ads.enabled === false || state.ads.slotEnabled?.[slot] === false) return [];
   const entries = Array.isArray(state.ads.slots?.[slot]) ? state.ads.slots[slot] : [];
   const byId = new Map(state.ads.ads.map((ad) => [ad.id, ad]));
   return entries
@@ -462,6 +474,7 @@ function renderAdSlot(element, slot) {
     element.closest(".ad-slot").hidden = true;
     return;
   }
+  element.closest(".ad-slot").hidden = false;
   element.href = safeAllowedUrl(ad.url, state.config.allowedAdHosts).href;
   element.textContent = ad.text;
   element.dataset.adSlot = slot;
@@ -637,7 +650,26 @@ function applyLanguage() {
     button.classList.toggle("is-active", active);
     button.setAttribute("aria-pressed", String(active));
   });
+  updateAdsToggle();
   applyCopy(document);
+}
+
+function toggleAdsVisibility() {
+  state.adsHidden = !state.adsHidden;
+  try { localStorage.setItem("rpg-portal-ads-hidden", String(state.adsHidden)); } catch { /* storage is optional */ }
+  updateAdsToggle();
+  if (state.games.length > 0) render();
+  renderAdSlot(elements.headerAd, "header");
+  renderAdSlot(elements.searchAd, "search");
+}
+
+function updateAdsToggle() {
+  if (!elements.adsToggle) return;
+  const label = state.adsHidden ? copy().showAds : copy().hideAds;
+  elements.adsToggle.hidden = state.ads.enabled === false || state.ads.ads.length === 0;
+  elements.adsToggle.setAttribute("aria-label", label);
+  elements.adsToggle.title = label;
+  elements.adsToggle.classList.toggle("is-active", state.adsHidden);
 }
 
 function applyCopy(root) {
@@ -659,6 +691,10 @@ function getInitialLanguage() {
   if (language.startsWith("ja")) return "ja";
   if (language.startsWith("en")) return "en";
   return "zh-Hans";
+}
+
+function readAdsHiddenPreference() {
+  try { return localStorage.getItem("rpg-portal-ads-hidden") === "true"; } catch { return false; }
 }
 
 function setStatus(message, isError = false) {

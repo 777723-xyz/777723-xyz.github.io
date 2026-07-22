@@ -1,5 +1,14 @@
 {
   "version": 1,
+  "enabled": true,
+  "slotEnabled": {
+    "header": true,
+    "search": true,
+    "cards": true,
+    "gameOverlay": true,
+    "gameStart": true,
+    "gameTimed": true
+  },
   "cardInterval": {
     "min": 8,
     "max": 12

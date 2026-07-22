@@ -26,7 +26,7 @@ requireValue(typeof config.socialDescription === "string" && config.socialDescri
 requireValue(isHttpUrl(config.publishUrl), "publishUrl must be HTTP(S)");
 requireValue(isHttpUrl(config.acquireUrl), "acquireUrl must be HTTP(S)");
 requireValue(new URL(config.publishUrl).hostname === "ecy.al", "publishUrl must use ecy.al");
-requireValue(new URL(config.acquireUrl).hostname === "ecy.al", "acquireUrl must use ecy.al");
+requireValue(config.allowedAdHosts.includes(new URL(config.acquireUrl).hostname), "acquireUrl host is not allowlisted");
 requireValue(config.showSourceButton === false, "source button must be hidden by default");
 requireValue(config.launcherPath === "/play.html", "launcherPath must point to /play.html");
 requireValue(Array.isArray(config.catalogEndpoints) && config.catalogEndpoints.length > 0, "catalogEndpoints is empty");
@@ -53,7 +53,6 @@ for (const ad of ads.ads || []) {
   requireValue(!texts.has(ad.text), `duplicate ad copy: ${ad.id}`);
   requireValue(isHttpUrl(ad.url), `invalid ad URL: ${ad.id}`);
   requireValue(config.allowedAdHosts.includes(new URL(ad.url).hostname), `ad URL is outside allowed ad hosts: ${ad.id}`);
-  requireValue(new URL(ad.url).hostname === "ecy.al", `ad URL must use ecy.al: ${ad.id}`);
   ids.add(ad.id);
   texts.add(ad.text);
 }
@@ -61,12 +60,15 @@ for (const ad of ads.ads || []) {
 requireValue(Number(ads.cardInterval?.min) >= 8, "card ad minimum interval must be at least 8");
 requireValue(Number(ads.cardInterval?.max) <= 12, "card ad maximum interval must be at most 12");
 requireValue(Number(ads.cardInterval?.min) <= Number(ads.cardInterval?.max), "card ad interval range is reversed");
+requireValue(typeof ads.enabled === "boolean", "ads.enabled must be boolean");
 for (const slot of ["header", "search", "cards", "gameOverlay", "gameStart", "gameTimed"]) {
   requireValue(Array.isArray(ads.slots?.[slot]) && ads.slots[slot].length > 0, `ad slot is empty: ${slot}`);
+  requireValue(typeof ads.slotEnabled?.[slot] === "boolean", `ads.slotEnabled.${slot} must be boolean`);
   for (const id of ads.slots?.[slot] || []) requireValue(ids.has(id), `unknown ad id ${id} in slot ${slot}`);
 }
 
 requireValue(indexHtml.includes('id="publish-link"'), "publish link is missing");
+requireValue(indexHtml.includes('id="ads-toggle"'), "one-click ad toggle is missing");
 requireValue(indexHtml.includes('id="brand-title"'), "brand title is not configurable");
 requireValue(indexHtml.includes('id="catalog-loader"'), "catalog loading layer is missing");
 requireValue(indexHtml.includes('rel="canonical"'), "canonical URL is missing");
@@ -91,6 +93,7 @@ requireValue(appJs.includes("allowedControlHosts"), "portal control-host restric
 requireValue(appJs.includes("allowedAdHosts"), "portal ad-host restriction is missing");
 requireValue(appJs.includes("setMetaContent"), "SEO metadata is not driven by config.json");
 requireValue(appJs.includes("elements.brandTitle.textContent"), "visible site title is not driven by config.json");
+requireValue(appJs.includes('element.closest(".ad-slot").hidden = false'), "ad slot cannot be restored after one-click disable");
 requireValue(syncMetaJs.includes("replaceMeta"), "static portal metadata sync is missing");
 requireValue(appJs.includes("const PAGE_SIZE = 24"), "portal initial render limit is missing");
 requireValue(appJs.includes('loadData({ force: true })'), "manual refresh must bypass the catalog cache");

@@ -9,7 +9,7 @@ const elements = {
   close: document.querySelector("#ad-close"),
 };
 
-const state = { config: {}, ads: { ads: [], slots: {} }, game: null, closeTimer: null };
+const state = { config: {}, ads: { ads: [], slots: {} }, game: null, closeTimer: null, adsHidden: readAdsHiddenPreference() };
 const params = new URLSearchParams(location.search);
 const REMOTE_CONFIG_FIELDS = new Set([
   "siteName", "publishUrl", "acquireUrl", "adsEndpoints", "defaultCoverUrl",
@@ -41,7 +41,7 @@ async function start() {
 
   const acquire = safeAllowedUrl(state.game.acquireUrl, state.config.allowedAdHosts)
     || safeAllowedUrl(state.config.acquireUrl, state.config.allowedAdHosts)
-    || new URL("https://ecy.al/");
+    || new URL("https://pipifu.com/");
   elements.acquire.href = acquire.href;
   document.title = `${state.game.title || state.game.name || "游戏"} · ${state.config.siteName || "777723.xyz"}`;
   if (state.config.iframeSandbox) elements.game.setAttribute("sandbox", state.config.iframeSandbox);
@@ -132,7 +132,7 @@ async function fetchJson(value, timeoutMs = 12000) {
 
 function scheduleAds() {
   const options = state.config.gameAd || {};
-  if (options.enabled === false) return;
+  if (options.enabled === false || state.adsHidden || state.ads.enabled === false) return;
   setTimeout(() => showAd("gameStart"), Math.max(0, number(options.startDelaySeconds, 45)) * 1000);
   setInterval(() => showAd("gameTimed"), Math.max(60, number(options.repeatSeconds, 600)) * 1000);
 }
@@ -166,12 +166,15 @@ function showAd(slot) {
 function normalizeAds(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return { ads: [], slots: {} };
   return {
+    enabled: value.enabled !== false,
+    slotEnabled: value.slotEnabled && typeof value.slotEnabled === "object" ? value.slotEnabled : {},
     ads: Array.isArray(value.ads) ? value.ads.filter(isValidAd) : [],
     slots: value.slots && typeof value.slots === "object" ? value.slots : {},
   };
 }
 
 function getSlot(slot) {
+  if (state.adsHidden || state.ads.enabled === false || state.ads.slotEnabled?.[slot] === false) return [];
   const entries = Array.isArray(state.ads.slots?.[slot]) ? state.ads.slots[slot] : [];
   const byId = new Map(state.ads.ads.map((ad) => [ad.id, ad]));
   return entries.map((entry) => typeof entry === "string" ? byId.get(entry) : entry).filter(isValidAd);
@@ -250,6 +253,10 @@ function safeAllowedUrl(value, allowedHosts, base, allowSameOrigin = false) {
 function number(value, fallback) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function readAdsHiddenPreference() {
+  try { return localStorage.getItem("rpg-portal-ads-hidden") === "true"; } catch { return false; }
 }
 
 function clampInteger(value, min, max, fallback) {

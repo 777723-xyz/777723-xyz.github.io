@@ -5,7 +5,7 @@
 ## 常用设置
 
 - [`config.json`](config.json)：站点标题、副标题、发布页、默认获取地址、默认封面、游戏内广告时间。
-- [`ads.json`](ads.json)：广告文案、广告链接、顶部横幅、搜索框下方广告、卡片间广告和游戏内广告位。
+- [`ads.json`](ads.json)：广告文案、每条广告链接、顶部横幅、搜索框下方广告、卡片间广告和游戏内广告位。
 - [`assets/`](assets/)：本地头像、背景和加载占位图。
 
 `config.json` 中的 `title` 是网站标题，`siteName` 是品牌/域名，`tagline` 是首页品牌下方介绍，`description` 是搜索引擎摘要，`socialDescription` 是分享卡片摘要。页面运行时标题和这些摘要会一起更新，避免只改了可见文字却忘记 SEO 文案。
@@ -17,7 +17,9 @@
 3. 修改后提交到 `main`。
 4. 等待 `Deploy public game catalog` 成功，再访问 `https://yx.ecy.al/`。
 
-广告链接必须使用 `config.json` 中 `allowedAdHosts` 允许的主机；当前默认发布页和广告链接为 `https://ecy.al`。部署校验会阻止不在白名单中的链接。游戏卡片“获取”默认地址修改 `config.json` 的 `acquireUrl`；`ads.json` 只管理广告链接，不重复承担获取地址。不要把 API 密钥、SSH 密钥、密码或统计私钥写进仓库。
+广告链接必须使用 `config.json` 中 `allowedAdHosts` 允许的主机；每条广告的 `url` 可以不同，因此可以按广告区域使用不同域名。区域由 `slots` 控制，`slotEnabled` 可以单独关闭 `header`、`search`、`cards`、`gameOverlay`、`gameStart` 或 `gameTimed`；`enabled: false` 会全局关闭广告。
+
+游戏卡片“获取”默认地址修改 `config.json` 的 `acquireUrl`，当前默认是 `https://pipifu.com`；它与 `ads.json` 的广告链接分开维护。首页右上角的关闭广告按钮只对当前浏览器生效，并保存在本地；重新点击可恢复。不要把 API 密钥、SSH 密钥、密码或统计私钥写进仓库。
 
 ## 域名与流量
 
