@@ -7,7 +7,9 @@ on:
   repository_dispatch:
     types: [catalog-updated]
   schedule:
-    - cron: "27 * * * *"
+    # Backup deployment only; normal deploys are dispatched after a verified
+    # catalog metadata change.
+    - cron: "55 */6 * * *"
 
 permissions:
   contents: read
@@ -29,6 +31,8 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "24"
+      - name: Sync configured portal metadata
+        run: node scripts/sync-portal-meta.mjs
       - name: Validate portal configuration
         run: node scripts/validate-portal.mjs
       - name: Build reachable game catalog

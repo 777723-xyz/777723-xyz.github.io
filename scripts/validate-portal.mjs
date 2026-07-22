@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 
-const [config, ads, indexHtml, appJs, playHtml, playJs, buildCatalogJs, serviceWorkerJs, placeholderStat] = await Promise.all([
+const [config, ads, indexHtml, appJs, playHtml, playJs, buildCatalogJs, serviceWorkerJs, syncMetaJs, placeholderStat] = await Promise.all([
   readJson("config.json"),
   readJson("ads.json"),
   fs.readFile("index.html", "utf8"),
@@ -9,6 +9,7 @@ const [config, ads, indexHtml, appJs, playHtml, playJs, buildCatalogJs, serviceW
   fs.readFile("play.js", "utf8"),
   fs.readFile("scripts/build-catalog.mjs", "utf8"),
   fs.readFile("service-worker.js", "utf8"),
+  fs.readFile("scripts/sync-portal-meta.mjs", "utf8"),
   fs.stat("assets/loading-placeholder.jpg"),
 ]);
 
@@ -87,6 +88,7 @@ requireValue(appJs.includes("allowedControlHosts"), "portal control-host restric
 requireValue(appJs.includes("allowedAdHosts"), "portal ad-host restriction is missing");
 requireValue(appJs.includes("setMetaContent"), "SEO metadata is not driven by config.json");
 requireValue(appJs.includes("elements.brandTitle.textContent"), "visible site title is not driven by config.json");
+requireValue(syncMetaJs.includes("replaceMeta"), "static portal metadata sync is missing");
 requireValue(appJs.includes("const PAGE_SIZE = 24"), "portal initial render limit is missing");
 requireValue(appJs.includes('loadData({ force: true })'), "manual refresh must bypass the catalog cache");
 requireValue(appJs.includes("function setLoading"), "catalog loading layer state is missing");
