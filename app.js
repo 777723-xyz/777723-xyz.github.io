@@ -78,7 +78,7 @@ let coverLoadObserver;
 let resizeFrame;
 
 const REMOTE_CONFIG_FIELDS = new Set([
-  "siteName", "title", "tagline", "publishUrl", "acquireUrl", "showSourceButton", "defaultCoverUrl", "adsEndpoints",
+  "siteName", "title", "tagline", "description", "socialDescription", "publishUrl", "acquireUrl", "showSourceButton", "defaultCoverUrl", "adsEndpoints",
 ]);
 
 initializeUi();
@@ -595,8 +595,20 @@ function applyConfig() {
   const publishUrl = safeAllowedUrl(state.config.publishUrl, state.config.allowedAdHosts)?.href || "https://777723.xyz/";
   elements.publish.href = publishUrl;
   elements.footerPublish.href = publishUrl;
-  document.title = `${state.config.title || "Web RPG"} · ${state.config.siteName || "777723.xyz"}`;
+  const siteTitle = `${state.config.title || "Web RPG"} · ${state.config.siteName || "777723.xyz"}`;
+  document.title = siteTitle;
+  setMetaContent('meta[name="description"]', state.config.description);
+  setMetaContent('meta[property="og:title"]', siteTitle);
+  setMetaContent('meta[property="og:description"]', state.config.socialDescription || state.config.description);
+  setMetaContent('meta[name="twitter:title"]', siteTitle);
+  setMetaContent('meta[name="twitter:description"]', state.config.socialDescription || state.config.description);
   applyLanguage();
+}
+
+function setMetaContent(selector, value) {
+  if (typeof value !== "string" || !value.trim()) return;
+  const node = document.querySelector(selector);
+  if (node) node.setAttribute("content", value.trim());
 }
 
 function setLanguage(language) {

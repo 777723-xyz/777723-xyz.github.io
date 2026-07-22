@@ -8,6 +8,8 @@
 - [`ads.json`](ads.json)：广告文案、广告链接、顶部横幅、搜索框下方广告、卡片间广告和游戏内广告位。
 - [`assets/`](assets/)：本地头像、背景和加载占位图。
 
+`config.json` 中的 `title` 是网站标题，`siteName` 是品牌/域名，`tagline` 是首页品牌下方介绍，`description` 是搜索引擎摘要，`socialDescription` 是分享卡片摘要。页面运行时标题和这些摘要会一起更新，避免只改了可见文字却忘记 SEO 文案。
+
 ## 修改流程
 
 1. 在 GitHub 打开对应 JSON 文件，点击编辑按钮。
