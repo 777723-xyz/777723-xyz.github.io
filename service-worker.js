@@ -1,4 +1,4 @@
-const CACHE_NAME = "portal-cache-v4";
+const CACHE_NAME = "portal-cache-v5";
 const NAVIGATION_TIMEOUT_MS = 900;
 const SHELL_URLS = [
   "/",
@@ -56,7 +56,7 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (SHELL_PATHS.has(url.pathname)) {
-    event.respondWith(cacheFirst(request));
+    event.respondWith(networkFirstWithTimeout(request, request, event));
   }
 });
 
@@ -94,15 +94,6 @@ async function staleWhileRevalidate(request, event) {
 
 async function networkAndCache(request) {
   const cache = await caches.open(CACHE_NAME);
-  const response = await fetch(request);
-  if (response.ok) await cache.put(request, response.clone());
-  return response;
-}
-
-async function cacheFirst(request) {
-  const cache = await caches.open(CACHE_NAME);
-  const cached = await cache.match(request);
-  if (cached) return cached;
   const response = await fetch(request);
   if (response.ok) await cache.put(request, response.clone());
   return response;
