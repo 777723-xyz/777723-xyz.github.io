@@ -1,4 +1,4 @@
-const CACHE_NAME = "portal-cache-v3";
+const CACHE_NAME = "portal-cache-v4";
 const NAVIGATION_TIMEOUT_MS = 900;
 const SHELL_URLS = [
   "/",

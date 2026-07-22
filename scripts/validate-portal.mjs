@@ -77,7 +77,7 @@ requireValue(indexHtml.includes('rel="icon"'), "favicon link is missing");
 requireValue(indexHtml.includes('id="game-card-template"'), "game card template is missing");
 requireValue(indexHtml.includes('id="card-ad-template"'), "card ad template is missing");
 requireValue(indexHtml.includes('id="load-more"'), "incremental catalog control is missing");
-requireValue(indexHtml.includes('class="catalog-status sr-only"'), "catalog status must be visually hidden");
+requireValue(indexHtml.includes('class="catalog-status"'), "catalog total status is missing");
 requireValue(indexHtml.includes('class="pixel-button source"'), "icon-only source action is missing");
 requireValue(indexHtml.includes('rel="noopener noreferrer sponsored"'), "sponsored link protections are missing");
 requireValue(playHtml.includes('id="ad-modal"'), "game ad modal is missing");
@@ -104,7 +104,7 @@ requireValue(appJs.includes("function appendCatalogPage"), "automatic loading mu
 requireValue(appJs.includes("Existing cards are never recreated"), "automatic loading scroll-preservation guard is missing");
 requireValue(appJs.includes("function restoreScrollAnchor"), "automatic loading must preserve the scroll anchor");
 requireValue(appJs.includes('register("/service-worker.js")'), "portal cache registration is missing");
-requireValue(serviceWorkerJs.includes('const CACHE_NAME = "portal-cache-v3"'), "portal cache version is missing");
+requireValue(serviceWorkerJs.includes('const CACHE_NAME = "portal-cache-v4"'), "portal cache version is missing");
 requireValue(appJs.includes("value % columns === 0"), "card ads are not aligned to complete grid rows");
 requireValue(appJs.includes("fetchJson(LOCAL_CATALOG_ENDPOINT"), "catalog request is not prefetched in parallel");
 requireValue(appJs.includes("const aSize = a.dataSize ?? -1"), "portal must sort by dataSize like the upstream catalog");
