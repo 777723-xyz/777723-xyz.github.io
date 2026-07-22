@@ -4,6 +4,7 @@
   "tagline": "请务必收藏发布页，回家不迷路",
   "description": "Web RPG 是 777723.xyz 的公开网页 RPG 游戏目录：搜索、发现并直接游玩已验证的 Web RPG 作品。",
   "socialDescription": "发现并直接游玩已验证的网页 RPG 作品。",
+  "displayCountOffset": 1000,
   "publishUrl": "https://ecy.al",
   "acquireUrl": "https://pipifu.com",
   "showSourceButton": false,

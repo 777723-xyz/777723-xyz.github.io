@@ -23,6 +23,7 @@ requireValue(config.title === "Web RPG", "config.title must be Web RPG");
 requireValue(config.tagline === "请务必收藏发布页，回家不迷路", "tagline does not match the requested copy");
 requireValue(typeof config.description === "string" && config.description.trim().length >= 20, "config.description is missing or too short");
 requireValue(typeof config.socialDescription === "string" && config.socialDescription.trim().length >= 12, "config.socialDescription is missing or too short");
+requireValue(config.displayCountOffset === 1000, "displayCountOffset must be 1000");
 requireValue(isHttpUrl(config.publishUrl), "publishUrl must be HTTP(S)");
 requireValue(isHttpUrl(config.acquireUrl), "acquireUrl must be HTTP(S)");
 requireValue(new URL(config.publishUrl).hostname === "ecy.al", "publishUrl must use ecy.al");
@@ -93,6 +94,7 @@ requireValue(appJs.includes("allowedControlHosts"), "portal control-host restric
 requireValue(appJs.includes("allowedAdHosts"), "portal ad-host restriction is missing");
 requireValue(appJs.includes("setMetaContent"), "SEO metadata is not driven by config.json");
 requireValue(appJs.includes("elements.brandTitle.textContent"), "visible site title is not driven by config.json");
+requireValue(appJs.includes("function getDisplayTotal"), "display count offset is not applied safely");
 requireValue(appJs.includes('element.closest(".ad-slot").hidden = false'), "ad slot cannot be restored after one-click disable");
 requireValue(syncMetaJs.includes("replaceMeta"), "static portal metadata sync is missing");
 requireValue(appJs.includes("const PAGE_SIZE = 24"), "portal initial render limit is missing");

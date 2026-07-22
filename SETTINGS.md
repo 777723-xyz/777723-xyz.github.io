@@ -10,6 +10,8 @@
 
 `config.json` 中的 `title` 是网站标题，`siteName` 是品牌/域名，`tagline` 是首页品牌下方介绍，`description` 是搜索引擎摘要，`socialDescription` 是分享卡片摘要。页面运行时标题和这些摘要会一起更新，避免只改了可见文字却忘记 SEO 文案。
 
+`displayCountOffset` 只增加首页展示的游戏总数，当前为 `1000`，所以真实 608 个时显示 1608 个；搜索结果数量始终使用真实匹配数量。
+
 ## 修改流程
 
 1. 在 GitHub 打开对应 JSON 文件，点击编辑按钮。

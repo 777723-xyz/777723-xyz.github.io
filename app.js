@@ -87,7 +87,7 @@ let coverLoadObserver;
 let resizeFrame;
 
 const REMOTE_CONFIG_FIELDS = new Set([
-  "siteName", "title", "tagline", "description", "socialDescription", "publishUrl", "acquireUrl", "showSourceButton", "defaultCoverUrl", "adsEndpoints",
+  "siteName", "title", "tagline", "description", "socialDescription", "displayCountOffset", "publishUrl", "acquireUrl", "showSourceButton", "defaultCoverUrl", "adsEndpoints",
 ]);
 
 initializeUi();
@@ -350,7 +350,7 @@ function render() {
   appendCatalogPage(games, 0, visibleGames.length);
   elements.catalogMore.hidden = visibleGames.length >= games.length;
   elements.loadMore.textContent = copy().loadMore;
-  setStatus(query ? copy().matched(visibleGames.length, games.length) : copy().loaded(visibleGames.length, games.length));
+  setStatus(query ? copy().matched(visibleGames.length, games.length) : copy().loaded(visibleGames.length, getDisplayTotal(games.length)));
 }
 
 function getFilteredGames(query = elements.search.value.trim().toLowerCase()) {
@@ -523,7 +523,12 @@ function showNextPage() {
   elements.catalogMore.hidden = end >= games.length;
   elements.loadMore.textContent = copy().loadMore;
   const query = elements.search.value.trim().toLowerCase();
-  setStatus(query ? copy().matched(end, games.length) : copy().loaded(end, games.length));
+  setStatus(query ? copy().matched(end, games.length) : copy().loaded(end, getDisplayTotal(games.length)));
+}
+
+function getDisplayTotal(total) {
+  if (total <= 0) return 0;
+  return total + clampInteger(state.config.displayCountOffset, 0, 100_000, 0);
 }
 
 function restoreScrollAnchor(anchor) {
