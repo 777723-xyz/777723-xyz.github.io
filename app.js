@@ -583,7 +583,7 @@ function resetObservedCovers() {
 
 function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
-  const register = () => navigator.serviceWorker.register("/service-worker.js").catch((error) => {
+  const register = () => navigator.serviceWorker.register("/service-worker.js?v=4").catch((error) => {
     console.warn("Portal cache unavailable", error);
   });
   if ("requestIdleCallback" in window) {

@@ -103,7 +103,7 @@ requireValue(appJs.includes("function initializeCoverLoading"), "viewport-based 
 requireValue(appJs.includes("function appendCatalogPage"), "automatic loading must append pages without rebuilding the catalog");
 requireValue(appJs.includes("Existing cards are never recreated"), "automatic loading scroll-preservation guard is missing");
 requireValue(appJs.includes("function restoreScrollAnchor"), "automatic loading must preserve the scroll anchor");
-requireValue(appJs.includes('register("/service-worker.js")'), "portal cache registration is missing");
+requireValue(appJs.includes('register("/service-worker.js?v=4")'), "portal cache registration is missing");
 requireValue(serviceWorkerJs.includes('const CACHE_NAME = "portal-cache-v4"'), "portal cache version is missing");
 requireValue(appJs.includes("value % columns === 0"), "card ads are not aligned to complete grid rows");
 requireValue(appJs.includes("fetchJson(LOCAL_CATALOG_ENDPOINT"), "catalog request is not prefetched in parallel");
