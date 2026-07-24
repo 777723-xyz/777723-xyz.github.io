@@ -1,10 +1,11 @@
-const CACHE_NAME = "portal-cache-v6";
+const CACHE_NAME = "portal-cache-v7";
 const NAVIGATION_TIMEOUT_MS = 900;
 const SHELL_URLS = [
   "/",
   "/index.html",
   "/styles.css?v=loader-20260721",
-  "/app.js?v=data-size-sort-20260721",
+  "/app.js?v=playable-chinese-sort-20260724",
+  "/game-sort.js?v=playable-chinese-sort-20260724",
   "/config.json",
   "/ads.json",
   "/assets/webrpg-background-mobile.webp",
@@ -16,6 +17,7 @@ const JSON_PATHS = new Set(["/config.json", "/ads.json", "/games.json"]);
 const SHELL_PATHS = new Set([
   "/styles.css",
   "/app.js",
+  "/game-sort.js",
   "/assets/webrpg-background-mobile.webp",
   "/assets/webrpg-background-mobile.jpg",
   "/assets/loading-placeholder.jpg",

@@ -1,10 +1,11 @@
 import fs from "node:fs/promises";
 
-const [config, ads, indexHtml, appJs, playHtml, playJs, buildCatalogJs, serviceWorkerJs, syncMetaJs, placeholderStat] = await Promise.all([
+const [config, ads, indexHtml, appJs, gameSortJs, playHtml, playJs, buildCatalogJs, serviceWorkerJs, syncMetaJs, placeholderStat] = await Promise.all([
   readJson("config.json"),
   readJson("ads.json"),
   fs.readFile("index.html", "utf8"),
   fs.readFile("app.js", "utf8"),
+  fs.readFile("game-sort.js", "utf8"),
   fs.readFile("play.html", "utf8"),
   fs.readFile("play.js", "utf8"),
   fs.readFile("scripts/build-catalog.mjs", "utf8"),
@@ -31,7 +32,7 @@ requireValue(config.allowedAdHosts.includes(new URL(config.acquireUrl).hostname)
 requireValue(config.showSourceButton === false, "source button must be hidden by default");
 requireValue(config.launcherPath === "/play.html", "launcherPath must point to /play.html");
 requireValue(Array.isArray(config.catalogEndpoints) && config.catalogEndpoints.length > 0, "catalogEndpoints is empty");
-requireValue(config.catalogEndpoints[0] === "/games.json?v=data-size-sort-20260721", "catalog endpoint cache version is stale");
+requireValue(config.catalogEndpoints[0] === "/games.json?v=playable-chinese-sort-20260724", "catalog endpoint cache version is stale");
 requireValue(Array.isArray(config.adsEndpoints) && config.adsEndpoints.length > 0, "adsEndpoints is empty");
 requireValue(Array.isArray(config.allowedControlHosts) && config.allowedControlHosts.length > 0, "allowedControlHosts is empty");
 requireValue(Array.isArray(config.allowedAdHosts) && config.allowedAdHosts.length > 0, "allowedAdHosts is empty");
@@ -103,19 +104,26 @@ requireValue(syncMetaJs.includes("replaceMeta"), "static portal metadata sync is
 requireValue(appJs.includes("const PAGE_SIZE = 24"), "portal initial render limit is missing");
 requireValue(appJs.includes('loadData({ force: true })'), "manual refresh must bypass the catalog cache");
 requireValue(appJs.includes("function setLoading"), "catalog loading layer state is missing");
-requireValue(appJs.includes("IntersectionObserver"), "automatic incremental loading is missing");
+requireValue(appJs.includes("IntersectionObserver"), "viewport-based cover loading is missing");
+requireValue(appJs.includes('addEventListener("scroll", scheduleAutoLoad, { passive: true })'), "automatic pagination must use a passive scroll listener");
+requireValue(appJs.includes("function scheduleAutoLoad"), "automatic pagination threshold handler is missing");
 requireValue(appJs.includes("function initializeCoverLoading"), "viewport-based cover loading is missing");
 requireValue(appJs.includes("function appendCatalogPage"), "automatic loading must append pages without rebuilding the catalog");
 requireValue(appJs.includes("Existing cards are never recreated"), "automatic loading scroll-preservation guard is missing");
 requireValue(appJs.includes("function restoreScrollAnchor"), "automatic loading must preserve the scroll anchor");
-requireValue(appJs.includes('register("/service-worker.js?v=6")'), "portal cache registration is missing");
-requireValue(serviceWorkerJs.includes('const CACHE_NAME = "portal-cache-v6"'), "portal cache version is missing");
+requireValue(appJs.includes('register("/service-worker.js?v=7")'), "portal cache registration is missing");
+requireValue(serviceWorkerJs.includes('const CACHE_NAME = "portal-cache-v7"'), "portal cache version is missing");
 requireValue(serviceWorkerJs.includes("networkFirstWithTimeout(request, request, event)"), "portal shell must refresh from the network before using cache");
 requireValue(appJs.includes("value % columns === 0"), "card ads are not aligned to complete grid rows");
 requireValue(appJs.includes("fetchJson(LOCAL_CATALOG_ENDPOINT"), "catalog request is not prefetched in parallel");
-requireValue(appJs.includes("const aSize = a.dataSize ?? -1"), "portal must sort by dataSize like the upstream catalog");
+requireValue(appJs.includes("compareCatalogGames(a, b, state.language)"), "portal does not use the tested catalog sorter");
+requireValue(indexHtml.includes('src="/game-sort.js?v=playable-chinese-sort-20260724"'), "tested catalog sorter is not loaded before the portal app");
+requireValue(gameSortJs.includes('status === "playable"'), "confirmed playable games are not ranked first");
+requireValue(gameSortJs.includes("hasChineseTitle(b.title)"), "Chinese titles are not prioritized within each runtime group");
+requireValue(gameSortJs.includes("const aSize = a.dataSize ?? -1"), "portal must retain dataSize as a stable fallback sort");
 requireValue(buildCatalogJs.includes("totalSize: Number(game.totalSize)"), "published catalog omits game size");
 requireValue(buildCatalogJs.includes("dataSize: Number(game.dataSize)"), "published catalog omits dataSize used for sorting");
+requireValue(buildCatalogJs.includes("runtimeStatus: game.runtimeStatus"), "published catalog omits runtime verification status");
 requireValue(buildCatalogJs.includes('game.title?.trim() === "__template__"'), "template repositories must be excluded like upstream");
 requireValue(buildCatalogJs.includes("loadFallbackCatalog"), "catalog build must retain the last published catalog during transient availability failures");
 requireValue(buildCatalogJs.includes("function deduplicateCatalog"), "catalog build must exclude duplicate game identities");

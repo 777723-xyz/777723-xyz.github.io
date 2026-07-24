@@ -1,3 +1,5 @@
+const { compareCatalogGames } = globalThis.GameSort;
+
 const elements = {
   status: document.querySelector("#catalog-status"),
   loader: document.querySelector("#catalog-loader"),
@@ -66,8 +68,6 @@ const COPY = {
   },
 };
 
-const titleCollators = new Map();
-
 const state = {
   config: {},
   ads: { ads: [], slots: {} },
@@ -80,11 +80,11 @@ const state = {
 };
 
 const PAGE_SIZE = 24;
-const LOCAL_CATALOG_ENDPOINT = "/games.json?v=data-size-sort-20260721";
+const LOCAL_CATALOG_ENDPOINT = "/games.json?v=playable-chinese-sort-20260724";
 const LOCAL_ADS_ENDPOINT = "/ads.json";
-let autoLoadObserver;
 let coverLoadObserver;
 let resizeFrame;
+let autoLoadTimer;
 
 const REMOTE_CONFIG_FIELDS = new Set([
   "siteName", "title", "tagline", "description", "socialDescription", "displayCountOffset", "publishUrl", "acquireUrl", "showSourceButton", "defaultCoverUrl", "adsEndpoints",
@@ -288,6 +288,8 @@ function toGame(raw, allowedHosts) {
     engine: raw.engine || "RPG Maker",
     totalSize: Number.isFinite(Number(raw.totalSize)) ? Number(raw.totalSize) : null,
     dataSize: Number.isFinite(Number(raw.dataSize)) ? Number(raw.dataSize) : null,
+    runtimeStatus: normalizeRuntimeStatus(raw.runtimeStatus),
+    runtimeLoadMs: Number.isFinite(Number(raw.runtimeLoadMs)) ? Number(raw.runtimeLoadMs) : null,
     hasCover: Boolean(raw.cover),
     coverUrl: coverUrl?.href || "",
     playUrl: playUrl.href,
@@ -298,22 +300,11 @@ function toGame(raw, allowedHosts) {
 }
 
 function compareGames(a, b) {
-  if (a.hasCover !== b.hasCover) return a.hasCover ? -1 : 1;
-  const aSize = a.dataSize ?? -1;
-  const bSize = b.dataSize ?? -1;
-  if (aSize !== bSize) return bSize - aSize;
-  return getTitleCollator().compare(a.title, b.title);
+  return compareCatalogGames(a, b, state.language);
 }
 
-function getTitleCollator() {
-  const locale = state.language === "en" ? "en" : "zh";
-  return titleCollators.get(locale) || createTitleCollator(locale);
-}
-
-function createTitleCollator(locale) {
-  const collator = new Intl.Collator(locale, { sensitivity: "base", usage: "sort" });
-  titleCollators.set(locale, collator);
-  return collator;
+function normalizeRuntimeStatus(value) {
+  return value === "playable" || value === "failed" ? value : "unknown";
 }
 
 function buildPlayUrl(pagesUrl, entryPath) {
@@ -342,6 +333,7 @@ function render() {
 
   if (games.length === 0) {
     elements.catalogMore.hidden = true;
+    scheduleAutoLoad();
     elements.catalog.append(createStateCard(copy().empty));
     setStatus(query ? copy().matched(0, 0) : copy().loaded(0, 0));
     return;
@@ -349,6 +341,7 @@ function render() {
 
   appendCatalogPage(games, 0, visibleGames.length);
   elements.catalogMore.hidden = visibleGames.length >= games.length;
+  scheduleAutoLoad();
   elements.loadMore.textContent = copy().loadMore;
   setStatus(query ? copy().matched(visibleGames.length, games.length) : copy().loaded(visibleGames.length, getDisplayTotal(games.length)));
 }
@@ -521,6 +514,7 @@ function showNextPage() {
   appendCatalogPage(games, start, end);
   restoreScrollAnchor(scrollAnchor);
   elements.catalogMore.hidden = end >= games.length;
+  scheduleAutoLoad();
   elements.loadMore.textContent = copy().loadMore;
   const query = elements.search.value.trim().toLowerCase();
   setStatus(query ? copy().matched(end, games.length) : copy().loaded(end, getDisplayTotal(games.length)));
@@ -542,14 +536,18 @@ function restoreScrollAnchor(anchor) {
 }
 
 function initializeAutoLoad() {
-  if (!("IntersectionObserver" in window)) return;
   document.documentElement.classList.add("has-auto-load");
-  autoLoadObserver = new IntersectionObserver((entries) => {
-    if (entries.some((entry) => entry.isIntersecting) && !state.loading && !elements.catalogMore.hidden) {
-      showNextPage();
-    }
-  }, { rootMargin: "700px 0px" });
-  autoLoadObserver.observe(elements.catalogMore);
+  window.addEventListener("scroll", scheduleAutoLoad, { passive: true });
+}
+
+function scheduleAutoLoad() {
+  if (autoLoadTimer) return;
+  autoLoadTimer = setTimeout(() => {
+    autoLoadTimer = null;
+    if (state.loading || elements.catalogMore.hidden) return;
+    const remaining = document.documentElement.scrollHeight - (window.scrollY + window.innerHeight);
+    if (remaining <= 700) showNextPage();
+  }, 50);
 }
 
 function initializeCoverLoading() {
@@ -588,7 +586,7 @@ function resetObservedCovers() {
 
 function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
-  const register = () => navigator.serviceWorker.register("/service-worker.js?v=6").catch((error) => {
+  const register = () => navigator.serviceWorker.register("/service-worker.js?v=7").catch((error) => {
     console.warn("Portal cache unavailable", error);
   });
   if ("requestIdleCallback" in window) {

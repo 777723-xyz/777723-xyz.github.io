@@ -100,6 +100,9 @@ function publicGame(game) {
     ...(Number.isFinite(Number(game.totalSize)) ? { totalSize: Number(game.totalSize) } : {}),
     ...(Number.isFinite(Number(game.dataSize)) ? { dataSize: Number(game.dataSize) } : {}),
     ...(typeof game.cover === "string" ? { cover: game.cover } : {}),
+    ...(["playable", "failed"].includes(game.runtimeStatus) ? { runtimeStatus: game.runtimeStatus } : {}),
+    ...(Number.isFinite(Number(game.runtimeLoadMs)) ? { runtimeLoadMs: Number(game.runtimeLoadMs) } : {}),
+    ...(typeof game.runtimeCheckedAt === "string" ? { runtimeCheckedAt: game.runtimeCheckedAt } : {}),
   };
 }
 
