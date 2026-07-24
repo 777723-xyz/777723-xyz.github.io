@@ -13,7 +13,13 @@ const allowedHosts = new Set(
 const concurrency = parsePositiveInt(process.env.CHECK_CONCURRENCY || "10");
 const timeoutMs = parsePositiveInt(process.env.CHECK_TIMEOUT_MS || "12000");
 
-const response = await fetch(sourceUrl, { headers: { "User-Agent": "777723-catalog-builder" } });
+const sourceRequestUrl = appendCacheBuster(sourceUrl);
+const response = await fetch(sourceRequestUrl, {
+  headers: {
+    "User-Agent": "777723-catalog-builder",
+    "Cache-Control": "no-cache",
+  },
+});
 if (!response.ok) throw new Error(`Catalog source returned ${response.status}`);
 
 const source = await response.json();
@@ -130,6 +136,11 @@ function normalizePagesUrl(value) {
   } catch {
     return "";
   }
+}
+
+function appendCacheBuster(value) {
+  const separator = value.includes("?") ? "&" : "?";
+  return `${value}${separator}catalog_refresh=${Date.now()}`;
 }
 
 async function checkGame(game) {

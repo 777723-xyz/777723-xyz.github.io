@@ -129,6 +129,8 @@ requireValue(buildCatalogJs.includes("loadFallbackCatalog"), "catalog build must
 requireValue(buildCatalogJs.includes("function deduplicateCatalog"), "catalog build must exclude duplicate game identities");
 requireValue(buildCatalogJs.includes("function normalizePagesUrl"), "catalog build must normalize Pages URLs before deduplication");
 requireValue(buildCatalogJs.includes("pagesUrls.has(pagesUrl)"), "catalog build must exclude duplicate Pages destinations");
+requireValue(buildCatalogJs.includes("function appendCacheBuster"), "catalog source must bypass stale Raw CDN responses");
+requireValue(buildCatalogJs.includes('"Cache-Control": "no-cache"'), "catalog source must request fresh upstream metadata");
 
 for (const [name, source] of [["index.html", indexHtml], ["app.js", appJs], ["play.html", playHtml], ["play.js", playJs]]) {
   requireValue(!source.includes("webrpg.org"), `${name} still references the old domain`);
