@@ -34,10 +34,11 @@ async function start() {
   state.game = games.find((game) => game.id === params.get("id"));
   if (!state.game) throw new Error("没有找到该游戏");
 
-  const target = buildPlayUrl(state.game.pagesUrl, state.game.entryPath);
-  if (!target || !state.config.allowedGameHosts?.includes(target.hostname)) {
+  const catalogTarget = buildPlayUrl(state.game.pagesUrl, state.game.entryPath);
+  if (!catalogTarget || !state.config.allowedGameHosts?.includes(catalogTarget.hostname)) {
     throw new Error("游戏地址未通过本站校验");
   }
+  const target = usePortalOriginForOwnPages(catalogTarget);
 
   const acquire = safeAllowedUrl(state.game.acquireUrl, state.config.allowedAdHosts)
     || safeAllowedUrl(state.config.acquireUrl, state.config.allowedAdHosts)
@@ -218,6 +219,12 @@ function buildPlayUrl(pagesUrl, entryPath) {
   if (!entry || entry.toLowerCase() === "index.html") return new URL(normalized);
   const target = new URL(entry, normalized);
   return target.origin === base.origin && target.pathname.startsWith(new URL(normalized).pathname) ? target : null;
+}
+
+function usePortalOriginForOwnPages(target) {
+  const ownPagesHost = state.config.allowedGameHosts?.find((host) => host.endsWith(".github.io"));
+  if (!ownPagesHost || target.hostname !== ownPagesHost || location.hostname === ownPagesHost) return target;
+  return new URL(`${target.pathname}${target.search}${target.hash}`, location.origin);
 }
 
 function sendEvent(event, data = {}) {

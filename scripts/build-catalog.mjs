@@ -19,7 +19,7 @@ if (!response.ok) throw new Error(`Catalog source returned ${response.status}`);
 const source = await response.json();
 if (!Array.isArray(source)) throw new Error("Catalog source is not an array");
 
-const candidates = source.filter((game) => {
+const sourceCandidates = source.filter((game) => {
   if (game?.status !== "verified" || typeof game.pagesUrl !== "string") return false;
   if (game.title?.trim() === "__template__") return false;
   try {
@@ -28,6 +28,7 @@ const candidates = source.filter((game) => {
     return false;
   }
 });
+const candidates = deduplicateCatalog(sourceCandidates);
 
 const checks = new Array(candidates.length);
 let cursor = 0;
@@ -70,7 +71,9 @@ await fs.writeFile("catalog-manifest.json", `${JSON.stringify({
   generatedAt: new Date().toISOString(),
   sourceUrl,
   sourceCount: source.length,
+  sourceCandidateCount: sourceCandidates.length,
   candidateCount: candidates.length,
+  duplicateCandidateCount: sourceCandidates.length - candidates.length,
   publishedCount: published.length,
   usedFallback,
   unavailableCount: unavailable.length,
@@ -79,6 +82,7 @@ await fs.writeFile("catalog-manifest.json", `${JSON.stringify({
 
 console.log(`Catalog source entries: ${source.length}`);
 console.log(`Verified own-Pages candidates: ${candidates.length}`);
+console.log(`Duplicate verified candidates excluded: ${sourceCandidates.length - candidates.length}`);
 console.log(`Published reachable games: ${published.length}`);
 console.log(`Unavailable games excluded: ${unavailable.length}`);
 
@@ -97,6 +101,32 @@ function publicGame(game) {
     ...(Number.isFinite(Number(game.dataSize)) ? { dataSize: Number(game.dataSize) } : {}),
     ...(typeof game.cover === "string" ? { cover: game.cover } : {}),
   };
+}
+
+function deduplicateCatalog(games) {
+  const unique = [];
+  const ids = new Set();
+  const pagesUrls = new Set();
+  for (const game of games) {
+    const id = String(game.id || "").trim().toLowerCase();
+    const source = `${game.owner || ""}/${game.name || ""}`.toLowerCase();
+    const identity = id || source;
+    const pagesUrl = normalizePagesUrl(game.pagesUrl);
+    if (!identity || ids.has(identity) || (pagesUrl && pagesUrls.has(pagesUrl))) continue;
+    ids.add(identity);
+    if (pagesUrl) pagesUrls.add(pagesUrl);
+    unique.push(game);
+  }
+  return unique;
+}
+
+function normalizePagesUrl(value) {
+  try {
+    const url = new URL(value);
+    return `${url.hostname.toLowerCase()}${url.pathname.replace(/\/+$/, "") || "/"}`;
+  } catch {
+    return "";
+  }
 }
 
 async function checkGame(game) {
@@ -136,12 +166,12 @@ async function loadFallbackCatalog() {
     if (!response.ok) return [];
     const catalog = await response.json();
     if (!Array.isArray(catalog)) return [];
-    return catalog
+    return deduplicateCatalog(catalog
       .filter((game) => game?.status === "verified" && typeof game.pagesUrl === "string")
       .filter((game) => {
         try { return allowedHosts.has(new URL(game.pagesUrl).hostname); } catch { return false; }
       })
-      .map(publicGame);
+      .map(publicGame));
   } catch (error) {
     console.warn(`Last published catalog unavailable: ${error.name || error.message}`);
     return [];

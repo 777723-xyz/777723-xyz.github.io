@@ -87,7 +87,10 @@ requireValue(playHtml.includes('content="noindex,follow"'), "launcher must not b
 requireValue(playHtml.includes('href="/favicon.ico"'), "launcher favicon is missing");
 requireValue(playJs.includes("scheduleAds()"), "game ad scheduler is missing");
 requireValue(playJs.includes("iframeSandbox"), "iframe sandbox configuration is missing");
+requireValue(playJs.includes("usePortalOriginForOwnPages(catalogTarget)"), "launcher must map own Pages games to the active custom domain");
+requireValue(playJs.includes("location.origin"), "launcher custom-domain mapping is missing");
 requireValue(playHtml.includes('src="/play.js?'), "launcher must use the local hardened script");
+requireValue(playHtml.includes('src="/play.js?v=same-origin-20260724"'), "launcher cache version is stale");
 requireValue(playJs.includes('renderTopAd()'), "fixed game overlay ad renderer is missing");
 requireValue(appJs.includes("REMOTE_CONFIG_FIELDS"), "portal runtime config whitelist is missing");
 requireValue(appJs.includes("allowedControlHosts"), "portal control-host restriction is missing");
@@ -105,8 +108,8 @@ requireValue(appJs.includes("function initializeCoverLoading"), "viewport-based 
 requireValue(appJs.includes("function appendCatalogPage"), "automatic loading must append pages without rebuilding the catalog");
 requireValue(appJs.includes("Existing cards are never recreated"), "automatic loading scroll-preservation guard is missing");
 requireValue(appJs.includes("function restoreScrollAnchor"), "automatic loading must preserve the scroll anchor");
-requireValue(appJs.includes('register("/service-worker.js?v=5")'), "portal cache registration is missing");
-requireValue(serviceWorkerJs.includes('const CACHE_NAME = "portal-cache-v5"'), "portal cache version is missing");
+requireValue(appJs.includes('register("/service-worker.js?v=6")'), "portal cache registration is missing");
+requireValue(serviceWorkerJs.includes('const CACHE_NAME = "portal-cache-v6"'), "portal cache version is missing");
 requireValue(serviceWorkerJs.includes("networkFirstWithTimeout(request, request, event)"), "portal shell must refresh from the network before using cache");
 requireValue(appJs.includes("value % columns === 0"), "card ads are not aligned to complete grid rows");
 requireValue(appJs.includes("fetchJson(LOCAL_CATALOG_ENDPOINT"), "catalog request is not prefetched in parallel");
@@ -115,6 +118,9 @@ requireValue(buildCatalogJs.includes("totalSize: Number(game.totalSize)"), "publ
 requireValue(buildCatalogJs.includes("dataSize: Number(game.dataSize)"), "published catalog omits dataSize used for sorting");
 requireValue(buildCatalogJs.includes('game.title?.trim() === "__template__"'), "template repositories must be excluded like upstream");
 requireValue(buildCatalogJs.includes("loadFallbackCatalog"), "catalog build must retain the last published catalog during transient availability failures");
+requireValue(buildCatalogJs.includes("function deduplicateCatalog"), "catalog build must exclude duplicate game identities");
+requireValue(buildCatalogJs.includes("function normalizePagesUrl"), "catalog build must normalize Pages URLs before deduplication");
+requireValue(buildCatalogJs.includes("pagesUrls.has(pagesUrl)"), "catalog build must exclude duplicate Pages destinations");
 
 for (const [name, source] of [["index.html", indexHtml], ["app.js", appJs], ["play.html", playHtml], ["play.js", playJs]]) {
   requireValue(!source.includes("webrpg.org"), `${name} still references the old domain`);
